@@ -1,0 +1,226 @@
+/* ============================================================================
+   Valura Partner Activation Hub — generated documents and collateral
+   Everything here is what a partner, a bank or a regulator actually sees.
+   Fixed page sizes at 96dpi so print and screen agree.
+   ==========================================================================*/
+
+/* -- page shells --------------------------------------------------------- */
+.pg {
+  background: #fff; color: var(--text);
+  font-family: var(--font-sans); font-size: 10.5px; line-height: 1.55;
+  border: 1px solid var(--rule); border-radius: 2px;
+  margin: 0 auto 22px; position: relative; overflow: hidden;
+}
+.pg.a4      { width: 794px;  min-height: 1123px; padding: 46px 54px 58px; }  /* A4 portrait  */
+.pg.a4l     { width: 1123px; height: 794px;      padding: 44px 52px; }        /* A4 landscape */
+.pg.auto    { width: 794px;  min-height: 0;      padding: 46px 54px; }
+.pg-num {
+  position: absolute; left: 54px; right: 54px; bottom: 22px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-mono); font-size: 7.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--text-faint);
+  border-top: 1px solid var(--rule); padding-top: 8px;
+}
+
+/* -- the ink band — one per document ------------------------------------- */
+.band {
+  background: var(--ink); color: var(--on-ink); position: relative; overflow: hidden;
+  margin: -46px -54px 30px; padding: 34px 54px 32px;
+}
+.pg.a4l .band { margin: -44px -52px 20px; padding: 30px 52px 28px; }
+.pg.a4l .pg-num { left: 52px; right: 52px; bottom: 16px; }
+.band::after {
+  content: ''; position: absolute; top: -140px; right: -90px; width: 340px; height: 340px;
+  background: radial-gradient(circle, rgba(2,162,75,.34), transparent 62%); pointer-events: none;
+}
+.band .brandline { display: flex; align-items: center; justify-content: space-between; gap: 20px; position: relative; z-index: 1; }
+.band .mark { display: flex; align-items: center; gap: 8px; }
+.band .mark img { width: 18px; height: 18px; }
+.band .mark span { font-family: var(--font-mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #fff; font-weight: 600; }
+.band .doclbl { font-family: var(--font-mono); font-size: 8px; letter-spacing: .16em; text-transform: uppercase; color: rgba(233,241,236,.55); }
+.band h1 {
+  position: relative; z-index: 1;
+  font-family: var(--font-display); font-weight: 400; letter-spacing: -.02em;
+  font-size: 40px; line-height: 1.04; margin: 22px 0 0; color: #fff; max-width: 24ch;
+}
+.band h1 em { font-style: italic; }
+.band .stand { position: relative; z-index: 1; margin: 13px 0 0; max-width: 62ch; font-size: 11.5px; color: rgba(233,241,236,.78); line-height: 1.6; }
+.band .metarow { position: relative; z-index: 1; display: flex; gap: 26px; margin-top: 22px; flex-wrap: wrap; }
+.band .metarow div .k { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: .14em; text-transform: uppercase; color: rgba(233,241,236,.45); }
+.band .metarow div .v { font-family: var(--font-mono); font-size: 11px; color: #fff; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* -- the co-brand lockup ------------------------------------------------- */
+.lockup { display: flex; align-items: center; gap: 12px; }
+.lockup.stacked { flex-direction: column; align-items: flex-start; gap: 8px; }
+.lockup .div { width: 1px; height: 20px; background: rgba(255,255,255,.24); }
+.lockup.on-light .div { background: var(--rule-strong); }
+.lockup .pmark { max-height: 22px; max-width: 116px; object-fit: contain; display: block; }
+.lockup .pname {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase; font-weight: 600;
+}
+
+/* -- document typography ------------------------------------------------- */
+.pg h2.sec {
+  font-family: var(--font-sans); font-size: 12.5px; font-weight: 700;
+  letter-spacing: var(--tracking-snug); margin: 26px 0 9px;
+  padding-top: 13px; border-top: 1px solid var(--rule);
+}
+.pg h2.sec:first-of-type { margin-top: 0; }
+.pg h2.sec .no { font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; color: var(--brand); margin-right: 9px; }
+.pg h3.sub { font-size: 11px; font-weight: 700; margin: 15px 0 6px; letter-spacing: var(--tracking-snug); }
+.pg p { margin: 0 0 9px; color: var(--text-body); }
+.pg p.lede { font-size: 11.5px; color: var(--text); }
+.pg ol, .pg ul { margin: 0 0 10px; padding-left: 19px; color: var(--text-body); }
+.pg li { margin-bottom: 5px; }
+.pg .fine { font-size: 8.5px; color: var(--text-muted); line-height: 1.55; }
+.pg .defn { margin-bottom: 8px; }
+.pg .defn b { color: var(--text); }
+
+.eyebrow-blk { margin-bottom: 14px; }
+.eyebrow-blk .lbl { font-size: 8.5px; }
+.eyebrow-blk .eyebrow-rule { margin-top: 7px; }
+
+/* -- document tables ----------------------------------------------------- */
+table.dt { width: 100%; border-collapse: collapse; font-size: 10px; margin: 10px 0 12px; }
+table.dt th {
+  text-align: left; padding: 7px 9px; background: var(--paper-2);
+  border-bottom: 1px solid var(--rule-strong);
+  font-family: var(--font-mono); font-size: 7.5px; font-weight: 500;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted);
+}
+table.dt td { padding: 7px 9px; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--text-body); }
+table.dt td:first-child { color: var(--text); }
+table.dt td.num, table.dt th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table.dt tr.hl td { background: var(--brand-tint); color: var(--brand-deep); font-weight: 600; }
+table.dt tr.tot td { border-top: 1px solid var(--rule-strong); border-bottom: 0; font-weight: 700; color: var(--text); }
+
+/* -- callouts ------------------------------------------------------------ */
+.callout {
+  border-left: 2px solid var(--brand); background: var(--brand-tint);
+  padding: 11px 14px; margin: 12px 0; border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  font-size: 9.5px; color: var(--brand-deep); line-height: 1.6;
+}
+.callout.warn { border-left-color: #C99A1F; background: #FBF3E2; color: #6E4E0C; }
+.callout.stop { border-left-color: var(--down); background: #FAEBE9; color: #8A2B22; }
+.callout b { font-weight: 700; }
+
+.kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 12px 0 16px; }
+.kv.k2 { grid-template-columns: repeat(2, 1fr); }
+.kv.k3 { grid-template-columns: repeat(3, 1fr); }
+.kv > div { border-top: 1px solid var(--rule); padding-top: 8px; }
+.kv .k { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--text-faint); }
+.kv .v { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; margin-top: 5px; color: var(--text); }
+.kv .v.sm { font-size: 10px; font-family: var(--font-sans); line-height: 1.4; }
+
+.sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 34px; }
+.sign-box { border-top: 1px solid var(--rule-strong); padding-top: 10px; }
+.sign-box .who { font-size: 10px; font-weight: 700; }
+.sign-box .line { height: 40px; border-bottom: 1px solid var(--rule); margin: 10px 0 8px; }
+.sign-box .f { font-family: var(--font-mono); font-size: 8.5px; color: var(--text-muted); line-height: 1.9; }
+
+/* ============================================================ EMAIL ===== */
+.mail {
+  width: 640px; margin: 0 auto 22px; background: #fff;
+  border: 1px solid var(--rule); border-radius: var(--r-md); overflow: hidden;
+}
+.mail-hdr { padding: 13px 20px; background: var(--paper-2); border-bottom: 1px solid var(--rule); }
+.mail-hdr .row { display: flex; gap: 10px; font-size: 11.5px; padding: 2px 0; }
+.mail-hdr .row .k { font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--text-faint); width: 62px; flex: none; padding-top: 2px; }
+.mail-hdr .row .v { color: var(--text); }
+.mail-hdr .row .v b { font-weight: 700; }
+.mail-band { background: var(--ink); padding: 22px 30px; position: relative; overflow: hidden; }
+.mail-band::after { content:''; position: absolute; top:-90px; right:-60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(2,162,75,.32), transparent 62%); }
+.mail-body { padding: 26px 30px 22px; font-size: 13px; line-height: 1.62; color: var(--text-body); }
+.mail-body h2 { font-family: var(--font-display); font-weight: 400; font-size: 25px; line-height: 1.1; letter-spacing: -.02em; color: var(--text); margin: 0 0 14px; }
+.mail-body p { margin: 0 0 13px; }
+.mail-body strong { color: var(--text); font-weight: 600; }
+.mail-body ul { margin: 0 0 13px; padding-left: 18px; }
+.mail-body li { margin-bottom: 6px; }
+.mail-cta {
+  display: inline-block; background: var(--brand); color: #fff; text-decoration: none;
+  padding: 11px 22px; border-radius: var(--r-pill); border: 0;
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+  margin: 6px 0 14px;
+}
+.mail-tbl { width: 100%; border-collapse: collapse; font-size: 11.5px; margin: 4px 0 16px; }
+.mail-tbl td { padding: 7px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.mail-tbl td:first-child { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-faint); width: 40%; }
+.mail-foot { padding: 16px 30px 22px; border-top: 1px solid var(--rule); background: var(--paper); font-size: 9.5px; color: var(--text-muted); line-height: 1.6; }
+.mail-foot .lbl { font-size: 8.5px; }
+
+/* ============================================================ CARDS ===== */
+.vcard {
+  width: 336px; height: 204px;               /* 89 × 54 mm at 96dpi */
+  border-radius: var(--r-sm); position: relative; overflow: hidden;
+  border: 1px solid var(--rule); display: flex; flex-direction: column; justify-content: space-between;
+  padding: 20px 22px; font-family: var(--font-sans);
+}
+.vcard.front { background: var(--ink); color: var(--on-ink); }
+.vcard.front::after { content:''; position:absolute; bottom:-90px; left:-60px; width: 230px; height: 230px; background: radial-gradient(circle, rgba(2,162,75,.3), transparent 62%); }
+.vcard.back { background: #fff; }
+.vcard .nm { font-size: 15px; font-weight: 700; letter-spacing: var(--tracking-snug); position: relative; z-index: 1; }
+.vcard .ttl { font-family: var(--font-mono); font-size: 8px; letter-spacing: .13em; text-transform: uppercase; margin-top: 4px; position: relative; z-index: 1; }
+.vcard .ct { font-family: var(--font-mono); font-size: 8px; line-height: 1.85; position: relative; z-index: 1; }
+.vcard .code { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: .12em; }
+
+/* -- social tiles -------------------------------------------------------- */
+.tile { position: relative; overflow: hidden; border: 1px solid var(--rule); }
+.tile.sq { width: 380px; height: 380px; padding: 30px; }
+.tile.banner { width: 660px; height: 165px; padding: 24px 30px; }
+.tile.story { width: 260px; height: 462px; padding: 26px; }
+.tile.ink { background: var(--ink); color: var(--on-ink); }
+.tile.ink::after { content:''; position:absolute; top:-100px; right:-80px; width: 300px; height: 300px; background: radial-gradient(circle, rgba(2,162,75,.35), transparent 62%); }
+.tile .inner { position: relative; z-index: 1; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+.tile h3 { font-family: var(--font-display); font-weight: 400; letter-spacing: -.02em; line-height: 1.06; margin: 0; color: #fff; }
+.tile.sq h3 { font-size: 30px; }
+.tile.banner h3 { font-size: 25px; }
+.tile.story h3 { font-size: 25px; }
+
+/* -- certificate --------------------------------------------------------- */
+.cert { width: 1123px; height: 794px; background: #fff; position: relative; overflow: hidden;
+  border: 1px solid var(--rule); padding: 56px 66px; display: flex; flex-direction: column; }
+.cert::before { content:''; position: absolute; inset: 20px; border: 1px solid var(--brand-line); pointer-events: none; }
+.cert::after { content:''; position: absolute; bottom: -180px; right: -140px; width: 520px; height: 520px;
+  background: radial-gradient(circle, rgba(2,162,75,.12), transparent 62%); pointer-events: none; }
+
+/* -- microsite preview --------------------------------------------------- */
+.site { width: 900px; margin: 0 auto; border: 1px solid var(--rule); border-radius: var(--r-md); overflow: hidden; background: #fff; }
+.site-chrome { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--paper-2); border-bottom: 1px solid var(--rule); }
+.site-chrome .dots { display: flex; gap: 5px; }
+.site-chrome .dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--rule-strong); display: block; }
+.site-chrome .url { flex: 1; background: #fff; border: 1px solid var(--rule); border-radius: var(--r-pill); padding: 4px 12px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); }
+.site-hero { background: var(--ink); color: var(--on-ink); padding: 46px 52px 44px; position: relative; overflow: hidden; }
+.site-hero::after { content:''; position:absolute; top:-140px; right:-90px; width: 380px; height: 380px; background: radial-gradient(circle, rgba(2,162,75,.3), transparent 62%); }
+
+/* -- letterhead / guardrails / kit insert --------------------------------- */
+.guard-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.guard-col ul { list-style: none; padding: 0; margin: 0; }
+.guard-col li { padding: 7px 0 7px 20px; border-bottom: 1px solid var(--rule); position: relative; font-size: 9.5px; line-height: 1.5; color: var(--text-body); }
+.guard-col li::before { position: absolute; left: 0; top: 7px; font-family: var(--font-mono); font-size: 10px; }
+.guard-col .may li::before { content: '+'; color: var(--brand); }
+.guard-col .maynot li::before { content: '×'; color: var(--down); }
+
+/* -- email signature ----------------------------------------------------- */
+.sig { width: 460px; background: #fff; border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 18px 20px; font-family: var(--font-sans); }
+.sig .nm { font-size: 14px; font-weight: 700; letter-spacing: var(--tracking-snug); }
+.sig .ttl { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--text-muted); margin-top: 3px; }
+.sig .ct { font-family: var(--font-mono); font-size: 9px; line-height: 1.85; color: var(--text-body); margin-top: 10px; }
+.sig .disc { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 7.5px; color: var(--text-faint); line-height: 1.55; }
+
+/* -- printing ------------------------------------------------------------ */
+@media print {
+  .pg, .cert, .mail, .site { border: 0 !important; box-shadow: none !important; margin: 0 auto !important; page-break-after: always; }
+  .pg.a4 { width: 210mm; min-height: 296mm; }
+  .pg.a4l, .cert { width: 297mm; height: 209mm; }
+  @page { size: A4; margin: 0; }
+
+  /* A section longer than one sheet flows onto the next, but nothing that
+     reads as a single object is allowed to split across the break.        */
+  table.dt, .callout, .kv, .sign-grid, .sign-box, .defn,
+  .guard-col, .vcard, .tile, .sig { page-break-inside: avoid; }
+  table.dt tr { page-break-inside: avoid; }
+  table.dt thead { display: table-header-group; }
+  h2.sec, h3.sub, .eyebrow-blk { page-break-after: avoid; }
+  .band { page-break-inside: avoid; page-break-after: avoid; }
+}

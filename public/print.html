@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Valura — print surface</title>
+<!--
+  Headless render target. api/_lib/render.js loads this page, calls
+  VLRPrint.render(partner, doc, opts) and prints it. It shares every stylesheet
+  and every generator with the Hub, so a document produced here is the same
+  document the operator approved on screen — there is no second renderer to
+  drift out of step.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Schibsted+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/hub.css">
+<link rel="stylesheet" href="css/doc.css">
+<style>
+  html, body { background: #fff; margin: 0; padding: 0; }
+  #out .pg, #out .cert { border: 0; margin: 0 auto; break-after: page; page-break-after: always; }
+  #out .pg:last-child, #out .cert:last-child { break-after: auto; page-break-after: auto; }
+  .vf { background: none !important; box-shadow: none !important; padding: 0 !important; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/economics.js"></script>
+<script src="js/calendar.js"></script>
+<script src="js/docs/shared.js"></script>
+<script src="js/docs/agreement.js"></script>
+<script src="js/docs/commercial.js"></script>
+<script src="js/docs/emails.js"></script>
+<script src="js/docs/collateral.js"></script>
+<script src="js/docs/ops.js"></script>
+<script>
+(function () {
+  /* Which artefacts can be printed, and whether they are landscape. */
+  const DOCS = {
+    agreement:   { fn: (p, o) => VLR.Doc.agreement(p, o) },
+    termsheet:   { fn: p => VLR.Doc.termSheet(p) },
+    onepager:    { fn: p => VLR.Doc.onePager(p), landscape: true },
+    segment:     { fn: p => VLR.Doc.segmentPage(p) },
+    factsheet:   { fn: p => VLR.Doc.factSheet(p) },
+    disclosure:  { fn: p => VLR.Doc.disclosureDoc(p) },
+    intake:      { fn: p => VLR.Doc.intakeForm(p) },
+    kyb:         { fn: p => VLR.Doc.kybChecklist(p) },
+    guardrails:  { fn: p => VLR.Doc.guardrails(p) },
+    plan:        { fn: p => VLR.Doc.businessPlan(p) },
+    statement:   { fn: p => VLR.Doc.statement(p) },
+    certificate: { fn: p => VLR.Doc.certificate(p), landscape: true },
+    invite:      { fn: p => VLR.Doc.invite(p) },
+    wrapper:     { fn: p => VLR.Doc.onboardingWrapper(p) },
+    kitinsert:   { fn: p => VLR.Doc.kitInsert(p) },
+    letterhead:  { fn: p => VLR.Doc.letterhead(p) },
+    pack: {
+      fn: (p, o) => [
+        VLR.Doc.termSheet(p), VLR.Doc.agreement(p, o), VLR.Doc.onePager(p),
+        VLR.Doc.segmentPage(p), VLR.Doc.intakeForm(p), VLR.Doc.kybChecklist(p),
+        VLR.Doc.disclosureDoc(p), VLR.Doc.guardrails(p), VLR.Doc.businessPlan(p),
+        VLR.Doc.statement(p), VLR.Doc.onboardingWrapper(p), VLR.Doc.invite(p),
+        VLR.Doc.kitInsert(p), VLR.Doc.letterhead(p)
+      ].join('')
+    }
+  };
+
+  window.VLRPrint = {
+    ready: true,
+    docs: Object.keys(DOCS),
+
+    render(partner, doc, opts) {
+      try {
+        const spec = DOCS[doc];
+        if (!spec) return { error: `Unknown document "${doc}". Known: ${Object.keys(DOCS).join(', ')}.` };
+
+        /* Fill any field the caller left out, so a partly-filled record
+           renders rather than throwing on a missing property.             */
+        const p = Object.assign(VLR.blankPartner(), partner || {});
+        p.kyb = p.kyb || {};
+        p.people = p.people || [];
+        p.nonStandardTerms = p.nonStandardTerms || [];
+        p.social = p.social || {};
+
+        document.getElementById('out').innerHTML = spec.fn(p, opts || {});
+
+        const sheets = document.querySelectorAll('#out .pg, #out .cert').length;
+        return {
+          landscape: Boolean(spec.landscape),
+          sheets,
+          /* The e-sign field geometry travels with the render so the server
+             never has to hold its own copy of these numbers. */
+          esign: VLR.ESIGN,
+          partnerCode: p.partnerCode || null,
+          displayName: VLR.derive(p).displayName
+        };
+      } catch (e) {
+        return { error: (e && e.message) || String(e) };
+      }
+    }
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "valura-partner-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Valura Partner Activation Hub — paste a partner's details, and the agreement, calendar, collateral and email sequence generate. Sends for signature through Zoho Sign.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vercel dev",
+    "static": "python3 -m http.server 4321 --directory public"
+  },
+  "dependencies": {
+    "@sparticuz/chromium": "^131.0.0",
+    "puppeteer-core": "^23.9.0"
+  },
+  "devDependencies": {
+    "vercel": "^39.0.0"
+  }
+}

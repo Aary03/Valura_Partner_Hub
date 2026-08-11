@@ -1,0 +1,89 @@
+/* ==========================================================================
+   Valura — design tokens
+   Warm paper, evergreen ink, one vivid green. Editorial serif + grotesk + mono.
+   ========================================================================== */
+:root{
+  /* --- type ------------------------------------------------------------- */
+  --font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --font-sans:    'Schibsted Grotesk', -apple-system, 'Segoe UI', Helvetica, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --tracking-tight:   -0.02em;   /* serif display */
+  --tracking-snug:    -0.01em;   /* grotesk headings */
+  --tracking-label:    0.12em;   /* mono uppercase labels */
+
+  /* --- surfaces --------------------------------------------------------- */
+  --paper:      #F7F6F3;   /* page — warm, never cold grey */
+  --paper-2:    #EFEDE8;   /* sunken / grouping tint */
+  --card:       #FFFFFF;
+  --ink:        #10221C;   /* dark band, primary text */
+  --ink-2:      #1B3229;
+
+  /* --- text ------------------------------------------------------------- */
+  --text:       #10221C;
+  --text-body:  #37473F;
+  --text-muted: #6B7A72;
+  --text-faint: #9AA6A0;
+  --on-ink:     #E9F1EC;
+
+  /* --- brand ------------------------------------------------------------ */
+  --brand:       #02A24B;
+  --brand-deep:  #0B4F31;
+  --brand-mid:   #46B97B;
+  --brand-tint:  #EAF6EF;
+  --brand-line:  #B9E0CA;
+
+  /* --- partners (diagram identification only) ---------------------------- */
+  --violet:      #5A45C8;
+  --violet-tint: #EFECFB;
+  --navy:        #0B2A5B;
+  --navy-tint:   #EDF1F8;
+  --navy-line:   #C3D0E6;
+
+  /* --- market semantics -------------------------------------------------- */
+  --up:   var(--brand);
+  --down: #C4392F;
+
+  /* --- lines & radii ----------------------------------------------------- */
+  --rule:        #DEDBD4;
+  --rule-strong: #C6C2B9;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-pill: 999px;
+
+  /* --- spacing (4px grid) ------------------------------------------------ */
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px;
+  --s-6:24px; --s-7:32px; --s-8:40px; --s-9:48px; --s-10:64px;
+
+  /* --- shadow: use sparingly, at most one per page ----------------------- */
+  --shadow: 0 1px 2px rgba(16,34,28,.05);
+}
+
+/* ---- base helpers -------------------------------------------------------- */
+.tnum, .price, .pct { font-variant-numeric: tabular-nums; }
+
+.eyebrow{
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* the house signature: mono eyebrow + short green rule */
+.eyebrow-rule{ width:28px; height:2px; background:var(--brand); margin-top:8px; }
+
+.display{
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.08;
+}
+.display em{ font-style: italic; }
+
+.up{ color: var(--up); }
+.down{ color: var(--down); }
+
+::selection{ background: var(--brand-tint); color: var(--brand-deep); }
