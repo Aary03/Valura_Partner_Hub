@@ -7,9 +7,29 @@
    and prints. What Zoho receives is byte-identical to what the Hub shows.
    ==========================================================================*/
 
-import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 import { HubError } from './zoho.js';
+
+/* @sparticuz/chromium is imported dynamically, and the reason matters.
+   ------------------------------------------------------------------------
+   At module load it calls setupLambdaEnvironment(), which extracts the shared
+   libraries and sets LD_LIBRARY_PATH — but only if it believes it is inside a
+   Lambda. It decides that from AWS_EXECUTION_ENV or AWS_LAMBDA_JS_RUNTIME.
+
+   Vercel sets neither. So on Vercel the package concluded it was on a normal
+   machine, inflated only chromium.br, skipped al2023.tar.br entirely and never
+   touched LD_LIBRARY_PATH — leaving a binary in /tmp that dies looking for
+   libnss3.so, which was sitting unread in the bundle the whole time.
+
+   Setting the flag first fixes it, and it has to happen before the module is
+   evaluated. ES imports are hoisted, so a static import would run the
+   detection before any line here could set the variable.                    */
+async function loadChromium() {
+  if (onLambda) {
+    process.env.AWS_LAMBDA_JS_RUNTIME ??= 'nodejs20.x';   // selects the AL2023 pack
+  }
+  return (await import('@sparticuz/chromium')).default;
+}
 
 /* 794 × 1123 CSS px is A4 at 96dpi; PDF points are 72dpi. Everything the
    Hub measures in px converts to points with this one factor, which is also
@@ -48,10 +68,11 @@ async function localExecutable() {
 async function launch() {
   if (!browserPromise) {
     browserPromise = (async () => {
-      const executablePath = onLambda ? await chromium.executablePath() : await localExecutable();
+      const chromium = onLambda ? await loadChromium() : null;
+      const executablePath = chromium ? await chromium.executablePath() : await localExecutable();
       try {
         return await puppeteer.launch({
-          args: onLambda
+          args: chromium
             ? [...chromium.args, '--font-render-hinting=none']
             : ['--no-sandbox', '--disable-setuid-sandbox', '--font-render-hinting=none'],
           defaultViewport: { width: 900, height: 1200, deviceScaleFactor: 1 },
@@ -59,19 +80,19 @@ async function launch() {
           headless: true
         });
       } catch (e) {
-        /* The usual failure is the bundler shipping the Chromium binary but
-           not the library packs beside it, so the binary starts and then
-           cannot find libnss3.so. Say which file is missing rather than
-           passing the raw loader error up to the operator. */
         if (onLambda && /libnss3|shared librar/i.test(e.message)) {
-          const { existsSync } = await import('node:fs');
-          const dir = new URL('../../node_modules/@sparticuz/chromium/bin/', import.meta.url).pathname;
-          const packs = ['al2023.tar.br', 'al2.tar.br', 'chromium.br'];
-          const present = packs.filter(f => { try { return existsSync(dir + f); } catch { return false; } });
+          /* If this still fires, the packs are present but were not unpacked —
+             report what the loader was actually given, so the next fix is not
+             another guess. */
+          const { existsSync, readdirSync } = await import('node:fs');
+          const libDir = '/tmp/al2023/lib';
+          let libs = 'not created';
+          try { libs = existsSync(libDir) ? readdirSync(libDir).length + ' files' : 'not created'; } catch {}
           throw new HubError(500,
             'Chromium started but could not load its shared libraries.',
-            `The library packs did not reach the function bundle. Present in ${dir}: ${present.join(', ') || 'none'}. ` +
-            'vercel.json must carry "includeFiles": "node_modules/@sparticuz/chromium/bin/**" on every function that renders. ' +
+            `LD_LIBRARY_PATH=${process.env.LD_LIBRARY_PATH || 'unset'} · ` +
+            `AWS_LAMBDA_JS_RUNTIME=${process.env.AWS_LAMBDA_JS_RUNTIME || 'unset'} · ` +
+            `${libDir}: ${libs}. ` +
             `Underlying error: ${e.message}`);
         }
         throw e;
