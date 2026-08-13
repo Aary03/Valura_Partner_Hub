@@ -202,3 +202,68 @@ Charges v3.0. Two of them interact with this system directly:
    undertaking, and names competitors with specific figures, which the IFSCA advertisement
    code requires to be accurate, current and substantiable. It also shows valura.com /
    hello@valura.com while the rest of the suite uses valura.ai.
+
+---
+
+## 10 · Client platform fee — **two published documents disagree, needs Val**
+
+`CONFIG.pricing.platform` and the published Schedule of Fees & Charges v4.1.
+
+- The partner pricing model treats **35 bps as Valura's cost**, adds 6 bps that
+  Valura keeps and 6 bps for the partner at a 50% split, so **the client pays
+  47 bps a year**.
+- The published **Schedule of Fees & Charges v4.1**, effective 5 August 2026,
+  tells clients the platform fee is **0.35% per year**.
+
+Those cannot both be true. Either the client schedule is understating the fee by
+12 bps, or the pricing model has mislabelled the client price as a cost. This is
+the same class of defect flagged against the v1.0 partner paper, and it is the
+one number a client can check for themselves.
+
+Nothing in the Hub resolves it. The pricing tab, Schedule A and the P&L all run
+on the pricing model; the client-facing disclosure quotes it. **Neither should
+go in front of a client until one of the two documents moves.**
+
+## 11 · Brokerage in the client schedule vs the partner model
+
+Schedule v4.1 charges clients 0.22% on equities and **0.20%** on bonds, mutual
+funds, UCITS and structured products. The partner pricing model has equity at
+22 bps and everything else at 20 bps, which reconciles. Confirmed, not inferred.
+
+## 12 · The exclusivity clause — **removed on instruction**
+
+`§2.6` of the Introducing Broker Agreement — *"This Agreement is non-exclusive.
+Either Party may enter into similar arrangements with others, and Valura and its
+affiliates may compete with the Introducing Broker in any aspect of its
+business"* — has been removed in full. §2 now runs 2.1 to 2.5.
+
+**What was deliberately left in place:** the words "non-exclusive" in §2.2 (the
+IB acts as an independent, non-exclusive referrer) and §3.1 (the appointment
+itself). Striking those would convert the appointment into an **exclusive** one
+and commit Valura to a territory or segment. That is a commercial decision with
+real consequences, not a tidy-up, and it was not what was asked for. If exclusive
+appointment is intended, it needs drafting properly — scope, territory, term,
+minimum volumes and what happens when they are missed.
+
+## 13 · Referral disclosure has moved — **confirm the onboarding pack carries it**
+
+Schedule v3.0 carried the disclosure at clause 10.2 as a `REFERRAL_DISCLOSURE`
+placeholder. **v4.1 no longer has that clause.** Section 08 now says only that
+what the introducing firm earns "is set out in your onboarding pack before you
+open the account".
+
+The obligation under clause 18(a) has not gone away — it has moved into the
+onboarding pack. The Hub still resolves the figure per partner code and renders
+it into the co-branded onboarding wrapper. **Someone must confirm that the pack
+the client actually receives at KYC contains that rendered string**, because the
+fee schedule no longer does.
+
+## 14 · Global Access Provider named for the first time
+
+Schedule v4.1 names **ViewTrade International IFSC Private Limited** as the
+Global Access Provider through which trades are executed, cleared and held. The
+Introducing Broker Agreement refers only to an unnamed "Execution & Custody
+Partner" and reserves Valura's right to change it without notice. That is
+consistent, but the two documents should be read together before either is
+issued, since the client schedule names the entity and the partner agreement
+does not.
