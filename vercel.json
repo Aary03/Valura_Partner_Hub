@@ -1,8 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/pdf.js": { "memory": 1769, "maxDuration": 60 },
-    "api/sign/send.js": { "memory": 1769, "maxDuration": 60 }
+    "api/pdf.js": {
+      "memory": 1769,
+      "maxDuration": 60,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    },
+    "api/sign/send.js": {
+      "memory": 1769,
+      "maxDuration": 60,
+      "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+    }
   },
   "headers": [
     {

@@ -49,14 +49,33 @@ async function launch() {
   if (!browserPromise) {
     browserPromise = (async () => {
       const executablePath = onLambda ? await chromium.executablePath() : await localExecutable();
-      return puppeteer.launch({
-        args: onLambda
-          ? [...chromium.args, '--font-render-hinting=none']
-          : ['--no-sandbox', '--disable-setuid-sandbox', '--font-render-hinting=none'],
-        defaultViewport: { width: 900, height: 1200, deviceScaleFactor: 1 },
-        executablePath,
-        headless: true
-      });
+      try {
+        return await puppeteer.launch({
+          args: onLambda
+            ? [...chromium.args, '--font-render-hinting=none']
+            : ['--no-sandbox', '--disable-setuid-sandbox', '--font-render-hinting=none'],
+          defaultViewport: { width: 900, height: 1200, deviceScaleFactor: 1 },
+          executablePath,
+          headless: true
+        });
+      } catch (e) {
+        /* The usual failure is the bundler shipping the Chromium binary but
+           not the library packs beside it, so the binary starts and then
+           cannot find libnss3.so. Say which file is missing rather than
+           passing the raw loader error up to the operator. */
+        if (onLambda && /libnss3|shared librar/i.test(e.message)) {
+          const { existsSync } = await import('node:fs');
+          const dir = new URL('../../node_modules/@sparticuz/chromium/bin/', import.meta.url).pathname;
+          const packs = ['al2023.tar.br', 'al2.tar.br', 'chromium.br'];
+          const present = packs.filter(f => { try { return existsSync(dir + f); } catch { return false; } });
+          throw new HubError(500,
+            'Chromium started but could not load its shared libraries.',
+            `The library packs did not reach the function bundle. Present in ${dir}: ${present.join(', ') || 'none'}. ` +
+            'vercel.json must carry "includeFiles": "node_modules/@sparticuz/chromium/bin/**" on every function that renders. ' +
+            `Underlying error: ${e.message}`);
+        }
+        throw e;
+      }
     })().catch(e => { browserPromise = null; throw e; });
   }
   return browserPromise;
