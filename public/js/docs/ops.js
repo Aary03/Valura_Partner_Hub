@@ -158,111 +158,265 @@ VLR.Doc.kybChecklist = function (p) {
   </section>`;
 };
 
-/* -- Business plan --------------------------------------------------------- */
+/* -- Business plan — on the finalised P&L model ----------------------------
+   Every figure comes from VLR.Econ.partnerPlan(), a port of
+   Valura_Partner_PnL_Dashboard.xlsx. Blended rate, monthly roll-forward, cost
+   escalator, working capital and the three cases all tie to that workbook.
+   ------------------------------------------------------------------------ */
 VLR.Doc.businessPlan = function (p) {
   const d = VLR.derive(p);
   const C = VLR.CONFIG;
-  const aumTarget = p.aumTargetUsd || d.t.aumTargetY1Usd;
-  const avgTicket = p.avgTicketUsd || Math.round(aumTarget / (p.clientTarget || d.t.clientTargetY1));
-  const pl = VLR.Econ.plan({ aumTarget, avgTicket, rotation: p.rotation, giftCityShare: p.giftCityShare,
-    tierKey: p.tier, placementsPerYearUsd: p.placementsPerYearUsd || 0, placementMix: p.placementMix });
-  const monthly = p.monthlyCostUsd || 1500;
-  const be = VLR.Econ.breakEvenMonth(pl.months, monthly);
   const fx = C.ops.fxUsdInr;
+  const usd = n => VLR.fmt.usd(n / fx);
 
-  /* Weekly input targets, worked backwards from the client target */
-  const clients = pl.clients;
-  const conv = { meetingToKyc: 0.35, callToMeeting: 0.30 };
-  const kycNeeded = Math.ceil(clients / 0.7);
-  const meetings = Math.ceil(kycNeeded / conv.meetingToKyc);
-  const calls = Math.ceil(meetings / conv.callToMeeting);
+  const plan = VLR.Econ.partnerPlan({
+    clientsPerMonth: p.clientsPerMonth, rampMonths: p.rampMonths,
+    avgTicketInr: p.avgTicketInr, migratedBookInr: p.migratedBookInr,
+    retention: p.retention, aumGrowth: p.aumGrowth,
+    anchor: p.tier === 'ANCHOR', subPartnerAumPerMonthInr: p.subPartnerAumPerMonthInr,
+    includeDayOne: p.includeDayOne !== false,
+    blendedRate: VLR.Econ.blendedFromPricing(p).blended
+  });
+  const br = VLR.Econ.blendedFromPricing(p);
+  const vb = VLR.Econ.valuraBorne();
+  const bud = plan.budget;
+  const inp = plan.inputs;
+
+  const yearRow = (label, w) => `<tr>
+    <td>${label}</td>
+    <td class="num">${VLR.fmt.inr(w.revenue)}</td>
+    <td class="num">${VLR.fmt.inr(w.gross)}</td>
+    <td class="num">${VLR.fmt.inr(w.coFund)}</td>
+    <td class="num">${VLR.fmt.inr(w.net)}</td>
+    <td class="num" style="color:${w.profit >= 0 ? 'var(--brand)' : 'var(--down)'}">${VLR.fmt.inr(w.profit)}</td>
+    <td class="num">${usd(w.profit)}</td></tr>`;
 
   return `
   <section class="pg a4">
-    ${VLR.Doc.band(p, { label: `Business plan · year one · ${d.t.label}`, cobrand: true,
-      title: `${VLR.fmt.usdShort(aumTarget)} of referred AUM, and <em>what it takes to get there</em>.`,
-      stand: `Built backwards from the target: AUM to clients, clients to meetings, meetings to calls. The weekly numbers at the end are the only ones anyone can actually manage.`,
-      meta: [['AUM target', VLR.fmt.usdShort(aumTarget)], ['Clients', String(clients)], ['Avg ticket', VLR.fmt.usd(avgTicket)], ['Break-even', be ? 'Month ' + be : 'Not in year 1']] })}
+    ${VLR.Doc.band(p, { label: `Business plan · ${d.t.label} · 36 months`, cobrand: true,
+      title: `${VLR.fmt.inrCr(plan.full.closingAum)} of book, and <em>what it costs to build it</em>.`,
+      stand: `Revenue compounds while the cost base stays broadly flat, so the question is never whether the book pays. It is how much working capital carries you to the month it starts to.`,
+      meta: [
+        ['Blended rate', VLR.fmt.pct(plan.rate, 3) + ' p.a.'],
+        ['Peak capital', VLR.fmt.inr(plan.peakCapital)],
+        ['Breakeven', plan.breakEvenMonth ? 'Month ' + plan.breakEvenMonth : 'Beyond month 36'],
+        ['Valura funds', VLR.fmt.inr(plan.valuraTotalAnnual) + ' p.a.']
+      ] })}
 
-    <h2 class="sec"><span class="no">01</span>The target, decomposed</h2>
+    <h2 class="sec"><span class="no">01</span>Working capital — what you fund before the book pays</h2>
+    <div class="kv k3">
+      <div><div class="k">Peak capital required</div><div class="v">${VLR.fmt.inr(plan.peakCapital)}</div>
+        <div class="fine" style="margin-top:4px">The deepest the cumulative cash position goes — the most you are out of pocket.</div></div>
+      <div><div class="k">Month of peak deficit</div><div class="v">${plan.peakMonth}</div>
+        <div class="fine" style="margin-top:4px">Cash burn bottoms out here, before the book turns it.</div></div>
+      <div><div class="k">Recommended reserve</div><div class="v">${VLR.fmt.inr(plan.reserve)}</div>
+        <div class="fine" style="margin-top:4px">Peak plus 20%. Do not start without this available.</div></div>
+    </div>
+    ${plan.dayOne ? `<p class="fine">Day-one setup of ${VLR.fmt.inr(plan.dayOne)} — office deposit, capex and licensing — lands before month 1 and is inside the peak above.</p>` : ''}
+
+    <h2 class="sec"><span class="no">02</span>Cost, revenue, profit</h2>
+    <table class="dt">
+      <thead><tr><th>Period</th><th class="num">Revenue</th><th class="num">Gross spend</th><th class="num">Valura co-funds</th><th class="num">Your net spend</th><th class="num">Net profit</th><th class="num">In USD</th></tr></thead>
+      <tbody>
+        ${yearRow('First 6 months', plan.m6)}
+        ${yearRow('Year 1', plan.y1)}
+        ${yearRow('3 years', plan.full)}
+      </tbody>
+    </table>
     <div class="kv">
-      <div><div class="k">Year-1 AUM</div><div class="v">${VLR.fmt.usdShort(aumTarget)}</div></div>
-      <div><div class="k">Clients needed</div><div class="v">${clients}</div></div>
-      <div><div class="k">Average ticket</div><div class="v">${VLR.fmt.usd(avgTicket)}</div></div>
-      <div><div class="k">Exit run-rate income</div><div class="v">${VLR.fmt.usd(pl.exitRunRateUsd)}</div></div>
+      <div><div class="k">Closing AUM</div><div class="v">${VLR.fmt.inrCr(plan.full.closingAum)}</div></div>
+      <div><div class="k">Clients acquired</div><div class="v">${Math.round(plan.full.clients)}</div></div>
+      <div><div class="k">Monthly revenue, month 36</div><div class="v">${VLR.fmt.inr(plan.exitMrr)}</div></div>
+      <div><div class="k">Cumulative breakeven</div><div class="v sm">${plan.breakEvenMonth ? 'Month ' + plan.breakEvenMonth : 'Beyond month 36'}</div></div>
     </div>
 
-    <h2 class="sec"><span class="no">02</span>Weekly input targets</h2>
-    <p class="fine" style="margin-top:-4px">Outputs are observed; inputs are managed. These are the numbers reviewed weekly for the first 90 days.</p>
+    <h2 class="sec"><span class="no">03</span>Output — what the spend produces</h2>
+    <table class="dt"><tbody>
+      <tr><td>Cost per client acquired — 3-year net spend ÷ clients</td><td class="num">${VLR.fmt.inr(plan.costPerClient)}</td></tr>
+      <tr><td>Revenue per ₹1 of net spend, over 3 years</td><td class="num">${plan.revenuePerRupee.toFixed(2)}×</td></tr>
+      <tr><td>AUM built per ₹1 of net spend</td><td class="num">${plan.aumPerRupee.toFixed(1)}×</td></tr>
+      <tr><td>Year-3 run-rate revenue, months 25–36</td><td class="num">${VLR.fmt.inr(plan.year3RunRate)}</td></tr>
+    </tbody></table>
+    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · page 1 · illustrative, not a guarantee')}
+  </section>
+
+  <section class="pg a4">
+    ${VLR.Doc.eyebrow('Assumptions · where the earning comes from')}
+    <h2 class="sec"><span class="no">04</span>What this runs on</h2>
     <table class="dt">
-      <thead><tr><th>Input</th><th class="num">Year</th><th class="num">Per month</th><th class="num">Per week</th><th>Assumption</th></tr></thead>
+      <thead><tr><th>Input</th><th class="num">Value</th><th>Why it matters</th></tr></thead>
       <tbody>
-        <tr><td>Introductory calls</td><td class="num">${calls}</td><td class="num">${Math.ceil(calls / 12)}</td><td class="num"><b>${Math.ceil(calls / 48)}</b></td><td>${VLR.fmt.pct(conv.callToMeeting, 0)} convert to a meeting</td></tr>
-        <tr><td>Client meetings</td><td class="num">${meetings}</td><td class="num">${Math.ceil(meetings / 12)}</td><td class="num"><b>${Math.ceil(meetings / 48)}</b></td><td>${VLR.fmt.pct(conv.meetingToKyc, 0)} start KYC</td></tr>
-        <tr><td>KYCs started</td><td class="num">${kycNeeded}</td><td class="num">${Math.ceil(kycNeeded / 12)}</td><td class="num"><b>${Math.ceil(kycNeeded / 48)}</b></td><td>70% fund</td></tr>
-        <tr class="hl"><td>Funded clients</td><td class="num">${clients}</td><td class="num">${Math.ceil(clients / 12)}</td><td class="num"><b>${(clients / 48).toFixed(1)}</b></td><td>At ${VLR.fmt.usd(avgTicket)} average</td></tr>
+        <tr><td>New clients per month, steady state</td><td class="num">${inp.clientsPerMonth}</td><td>Reached after the ramp.</td></tr>
+        <tr><td>Ramp-up months</td><td class="num">${inp.rampMonths}</td><td>Month 1 runs at 1/${inp.rampMonths}th of steady state.</td></tr>
+        <tr><td>Average first ticket</td><td class="num">${VLR.fmt.inr(inp.avgTicket)}</td><td>The first cheque, not the eventual relationship.</td></tr>
+        <tr><td>Existing book migrated during ramp</td><td class="num">${VLR.fmt.inr(inp.migrated)}</td><td>Spread evenly over the ramp. Zero for a cold start.</td></tr>
+        <tr><td>Client retention p.a.</td><td class="num">${VLR.fmt.pct(inp.retention, 0)}</td><td rowspan="2">Together these give a monthly roll-forward of ${inp.roll.toFixed(6)}, applied to the closing book each month.</td></tr>
+        <tr><td>AUM growth — market plus top-ups, p.a.</td><td class="num">${VLR.fmt.pct(inp.growth, 0)}</td></tr>
+        <tr class="hl"><td>Blended partner earning rate</td><td class="num">${VLR.fmt.pct(plan.rate, 3)} p.a.</td><td>Derived from the split agreed on the pricing sheet, not typed in.</td></tr>
       </tbody>
     </table>
 
-    <h2 class="sec"><span class="no">03</span>Month-by-month P&amp;L</h2>
+    <h2 class="sec"><span class="no">05</span>Where the earning comes from</h2>
     <table class="dt">
-      <thead><tr><th class="num">M</th><th class="num">Closing AUM</th><th class="num">Clients</th><th class="num">Recurring</th><th class="num">Placement</th><th class="num">Total USD</th><th class="num">Total INR</th><th class="num">Cumulative net</th></tr></thead>
-      <tbody>${(() => { let cum = 0; return pl.months.map(m => { cum += m.totalUsd - monthly; return `<tr${be === m.month ? ' class="hl"' : ''}>
+      <thead><tr><th>Asset class</th><th class="num">% of portfolio</th><th class="num">Platform</th><th class="num">Brokerage</th><th class="num">Placement</th><th class="num">Trail</th><th class="num">Your rate</th><th class="num">Share</th></tr></thead>
+      <tbody>${br.rows.map(r => `<tr>
+        <td>${VLR.fmt.esc(r.label)}</td>
+        <td class="num">${VLR.fmt.pct(r.weight, 0)}</td>
+        <td class="num">${VLR.fmt.pct(r.platformRate)}</td>
+        <td class="num">${VLR.fmt.pct(r.brokerageRate)}</td>
+        <td class="num">${r.placementRate ? VLR.fmt.pct(r.placementRate) : '—'}</td>
+        <td class="num">${r.trailRate ? VLR.fmt.pct(r.trailRate) : '—'}</td>
+        <td class="num"><b>${VLR.fmt.pct(r.rate)}</b></td>
+        <td class="num">${VLR.fmt.pct(r.shareOfEarnings, 1)}</td></tr>`).join('')}
+        <tr class="tot"><td>Blended</td><td class="num">100%</td><td class="num" colspan="4"></td>
+          <td class="num">${VLR.fmt.pct(br.blended)}</td><td class="num">100%</td></tr>
+      </tbody>
+    </table>
+
+    <h2 class="sec"><span class="no">06</span>What each class earns you</h2>
+    <table class="dt">
+      <thead><tr><th>Asset class</th><th class="num">First 6 months</th><th class="num">Year 1</th><th class="num">3 years</th><th class="num">Monthly by month 36</th></tr></thead>
+      <tbody>${br.rows.map(r => `<tr>
+        <td>${VLR.fmt.esc(r.label)}</td>
+        <td class="num">${VLR.fmt.inr(plan.m6.revenue * r.shareOfEarnings)}</td>
+        <td class="num">${VLR.fmt.inr(plan.y1.revenue * r.shareOfEarnings)}</td>
+        <td class="num">${VLR.fmt.inr(plan.full.revenue * r.shareOfEarnings)}</td>
+        <td class="num">${VLR.fmt.inr(plan.exitMrr * r.shareOfEarnings)}</td></tr>`).join('')}
+        <tr class="tot"><td>Total</td>
+          <td class="num">${VLR.fmt.inr(plan.m6.revenue)}</td>
+          <td class="num">${VLR.fmt.inr(plan.y1.revenue)}</td>
+          <td class="num">${VLR.fmt.inr(plan.full.revenue)}</td>
+          <td class="num">${VLR.fmt.inr(plan.exitMrr)}</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">Placement fees on pre-IPO and private funds are one-time when money is deployed, shown per annum on the convention that the allocation redeploys roughly once a year. Change the portfolio mix to match this partner's actual client base and the whole model reprices.</p>
+    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · page 2')}
+  </section>
+
+  <section class="pg a4">
+    ${VLR.Doc.eyebrow('Your cost lines · what Valura funds · what Valura absorbs')}
+
+    <h2 class="sec"><span class="no">07</span>Your monthly cost lines, and Valura's co-marketing</h2>
+    <table class="dt">
+      <thead><tr><th>Cost line</th><th class="num">Monthly</th><th class="num">Valura %</th><th class="num">Valura pays</th><th class="num">Your net</th><th class="num">Your net p.a.</th></tr></thead>
+      <tbody>${bud.rows.map(r => `<tr${r.coFund >= 1 ? ' class="hl"' : ''}>
+        <td>${VLR.fmt.esc(r.label)}${r.escalates ? ' <span class="mono" style="font-size:7px;color:var(--text-faint)">ESC</span>' : ''}</td>
+        <td class="num">${VLR.fmt.inr(r.monthly)}</td>
+        <td class="num">${r.coFund ? VLR.fmt.pct(r.coFund, 0) : '—'}</td>
+        <td class="num">${r.valuraPays ? VLR.fmt.inr(r.valuraPays) : '—'}</td>
+        <td class="num">${VLR.fmt.inr(r.partnerNet)}</td>
+        <td class="num">${VLR.fmt.inr(r.annualNet)}</td></tr>`).join('')}
+        <tr class="tot"><td>Total</td>
+          <td class="num">${VLR.fmt.inr(bud.grossMonthly)}</td>
+          <td class="num">${VLR.fmt.pct(bud.coFundPct, 1)}</td>
+          <td class="num">${VLR.fmt.inr(bud.valuraMonthly)}</td>
+          <td class="num">${VLR.fmt.inr(bud.netMonthly)}</td>
+          <td class="num">${VLR.fmt.inr(bud.netMonthly * 12)}</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">Lines marked ESC escalate at ${VLR.fmt.pct(bud.escalator, 0)} a year, stepping at months 13 and 25. A second relationship manager switches on at ${C.budget.secondRm.triggerClients} clients or ${VLR.fmt.inrCr(C.budget.secondRm.triggerAumInr)} of AUM, whichever comes first.</p>
+
+    <h2 class="sec"><span class="no">08</span>Valura's central co-marketing pool</h2>
+    <table class="dt">
+      <thead><tr><th>Central item</th><th class="num">₹ per partner p.a.</th><th>Notes</th></tr></thead>
+      <tbody>${C.budget.centralPool.map(r => `<tr>
+        <td>${VLR.fmt.esc(r.label)}</td><td class="num">${VLR.fmt.inr(r.annual)}</td><td>${VLR.fmt.esc(r.note)}</td></tr>`).join('')}
+        <tr class="tot"><td>Central pool</td><td class="num">${VLR.fmt.inr(bud.centralAnnual)}</td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>Valura's cash into your growth: ${VLR.fmt.inr(plan.valuraTotalAnnual)} a year</b> — ${VLR.fmt.inr(bud.valuraMonthly * 12)} of line-level co-marketing plus the ${VLR.fmt.inr(bud.centralAnnual)} central pool. Over three years, ${VLR.fmt.inr(plan.full.coFund)}.</div>
+
+    <h2 class="sec"><span class="no">09</span>And what Valura carries that never reaches your cost sheet</h2>
+    <p class="fine" style="margin-top:-4px">The co-marketing above is cash. The list below is infrastructure — built once and operated for every partner. Three of these appear in Valura's own schedule as charges that are listed and then waived, so that what is absorbed is visible rather than silently assumed.</p>
+    <table class="dt">
+      <thead><tr><th>What Valura runs and pays for</th><th>Basis</th><th class="num">Indicative if charged</th><th>Notes</th></tr></thead>
+      <tbody>${vb.rows.map(r => `<tr>
+        <td>${VLR.fmt.esc(r.item)}</td>
+        <td>${VLR.fmt.esc(r.basis)}</td>
+        <td class="num">${r.listedInr ? VLR.fmt.inr(r.listedInr) + ' p.a.' : '—'}</td>
+        <td>${VLR.fmt.esc(r.note)}</td></tr>`).join('')}
+        <tr class="tot"><td>Indicative annual value absorbed</td><td></td>
+          <td class="num">${VLR.fmt.inr(vb.annualInr)}</td>
+          <td>${usd(vb.annualInr)} · across ${vb.countedItems} of ${vb.totalItems} lines</td></tr>
+      </tbody>
+    </table>
+    <p class="fine">Indicative values are what these would cost a partner to buy or build alone. They are shown for transparency: they are not charges, not a credit and not a set-off. Nothing in this table is billed to the partner under any circumstance contemplated by the agreement.</p>
+    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · page 3')}
+  </section>
+
+  <section class="pg a4">
+    ${VLR.Doc.eyebrow('Month by month')}
+    <h2 class="sec"><span class="no">10</span>Thirty-six months</h2>
+    <table class="dt" style="font-size:8.5px">
+      <thead><tr><th class="num">M</th><th class="num">Clients</th><th class="num">Closing AUM</th><th class="num">Revenue</th>
+        <th class="num">Gross cost</th><th class="num">Valura</th><th class="num">Your net</th><th class="num">Profit</th><th class="num">Cumulative</th></tr></thead>
+      <tbody>${plan.months.map(m => `<tr${plan.breakEvenMonth === m.month ? ' class="hl"' : (m.month === plan.peakMonth ? ' style="background:#FBF3E2"' : '')}>
         <td class="num">${m.month}</td>
-        <td class="num">${VLR.fmt.usdShort(m.closingAum)}</td>
-        <td class="num">${m.clients}</td>
-        <td class="num">${VLR.fmt.usd(m.recurringUsd)}</td>
-        <td class="num">${m.placementUsd ? VLR.fmt.usd(m.placementUsd) : '—'}</td>
-        <td class="num">${VLR.fmt.usd(m.totalUsd)}</td>
-        <td class="num">${VLR.fmt.inr(m.totalUsd * fx)}</td>
-        <td class="num" style="color:${cum >= 0 ? 'var(--brand)' : 'var(--down)'}">${VLR.fmt.usd(cum)}</td></tr>`; }).join(''); })()}
-        <tr class="tot"><td colspan="5">Year one</td>
-          <td class="num">${VLR.fmt.usd(pl.year1Usd)}</td>
-          <td class="num">${VLR.fmt.inr(pl.year1Usd * fx)}</td>
-          <td class="num">${VLR.fmt.usd(pl.year1Usd - monthly * 12)}</td></tr>
+        <td class="num">${m.clients.toFixed(0)}</td>
+        <td class="num">${VLR.fmt.inrCr(m.closingAum)}</td>
+        <td class="num">${VLR.fmt.inr(m.revenue)}</td>
+        <td class="num">${VLR.fmt.inr(m.gross)}</td>
+        <td class="num">${VLR.fmt.inr(m.coFund)}</td>
+        <td class="num">${VLR.fmt.inr(m.net)}</td>
+        <td class="num" style="color:${m.profit >= 0 ? 'var(--brand)' : 'var(--down)'}">${VLR.fmt.inr(m.profit)}</td>
+        <td class="num" style="color:${m.cumulative >= 0 ? 'var(--brand)' : 'var(--down)'}">${VLR.fmt.inr(m.cumulative)}</td></tr>`).join('')}
       </tbody>
     </table>
-    <p class="fine">Assumes a running cost of ${VLR.fmt.usd(monthly)} a month (${VLR.fmt.inr(monthly * fx)}) covering the partner's own time allocation, marketing and travel, and an AUM ramp that reaches target in month 12. ${be ? `Break-even in month ${be}.` : 'Break-even falls beyond year one at these assumptions — either the target or the cost base needs revisiting.'}</p>
+    <p class="fine">The amber row is the month of peak cash deficit; the green row is cumulative breakeven. INR throughout, at ₹${fx} to the dollar.</p>
+    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · page 4')}
+  </section>
 
-    <h2 class="sec"><span class="no">04</span>Budget and co-funding</h2>
-    <table class="dt">
-      <thead><tr><th>Line</th><th class="num">Partner</th><th class="num">Valura co-fund at ${VLR.fmt.pct(d.t.coFundingPct, 0)}</th><th>Note</th></tr></thead>
-      <tbody>${(() => {
-        const band = p.marketingBudgetInr || 600000;
-        const lines = [
-          ['Launch event / roundtable', 0.35], ['Digital campaign and content', 0.25],
-          ['Print, kit and gifting', 0.20], ['Webinars and travel', 0.20]
-        ];
-        return lines.map(([l, w]) => `<tr><td>${l}</td>
-          <td class="num">${VLR.fmt.inr(band * w)}</td>
-          <td class="num">${VLR.fmt.inr(band * w * d.t.coFundingPct)}</td>
-          <td>Against approved spend</td></tr>`).join('') +
-          `<tr class="tot"><td>Total</td><td class="num">${VLR.fmt.inr(band)}</td><td class="num">${VLR.fmt.inr(band * d.t.coFundingPct)}</td><td>${VLR.fmt.esc(d.t.spendBandInr)} band</td></tr>`;
-      })()}
-      </tbody>
-    </table>
+  <section class="pg a4">
+    ${VLR.Doc.band(p, { label: 'Three cases', cobrand: false,
+      title: `Low, medium, high — <em>and what each returns</em>.`,
+      stand: `All three run through the identical engine: same asset mix, same retention and growth, same fee schedule. Only the commitment inputs differ, so the comparison isolates what the partner actually controls.`,
+      meta: [['Horizon', '36 months'], ['Engine', 'Identical'], ['Variables', 'Six']] })}
 
-    <h2 class="sec"><span class="no">05</span>Resources and readiness</h2>
-    <table class="dt">
-      <tbody>
-        <tr><td>People certified before launch</td><td>${(p.people || []).length || 1} — certification gates Stage 06</td></tr>
-        <tr><td>Coverage from Valura</td><td>${VLR.fmt.esc(d.t.coverage)} · ${VLR.fmt.esc(d.t.cadence)}</td></tr>
-        <tr><td>Client segments</td><td>${VLR.fmt.esc(p.clientSegments || d.seg.label)}</td></tr>
-        <tr><td>Languages</td><td>${VLR.fmt.esc(p.languages)} — decides whether collateral is produced once or several times</td></tr>
-        <tr><td>Cities</td><td>${VLR.fmt.esc(p.cities || '—')}</td></tr>
-      </tbody>
-    </table>
+    ${(() => {
+      const cases = VLR.Econ.threeCases({ anchor: p.tier === 'ANCHOR', blendedRate: br.blended });
+      const row = (label, fn, fmt) => `<tr><td>${label}</td>${cases.map(c =>
+        `<td class="num">${(fmt || VLR.fmt.inr)(fn(c))}</td>`).join('')}</tr>`;
+      return `<table class="dt">
+        <thead><tr><th>Commitment</th>${cases.map(c => `<th class="num">${VLR.fmt.esc(c.label)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${row('Gross monthly spend', c => c.grossMonthlyInr)}
+          ${row('New clients per month', c => c.clientsPerMonth, x => String(x))}
+          ${row('Average first ticket', c => c.avgTicketInr)}
+          ${row('Existing book migrated', c => c.migratedBookInr)}
+          ${row('Your net monthly spend', c => c.plan.budget.netMonthly)}
+        </tbody>
+      </table>
 
-    <div class="sign-grid">
+      <h2 class="sec"><span class="no">11</span>What each returns over 3 years</h2>
+      <table class="dt">
+        <thead><tr><th>Outcome</th>${cases.map(c => `<th class="num">${VLR.fmt.esc(c.label.split('—')[0].trim())}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${row('Clients acquired', c => c.plan.full.clients, x => String(Math.round(x)))}
+          ${row('Closing AUM — month 36', c => c.plan.full.closingAum, VLR.fmt.inrCr)}
+          ${row('Revenue — year 1', c => c.plan.y1.revenue)}
+          ${row('Revenue — 3 years', c => c.plan.full.revenue)}
+          ${row('Your net spend — 3 years', c => c.plan.full.net)}
+          ${row('Valura co-funds — 3 years', c => c.plan.full.coFund)}
+          <tr class="tot"><td>Net profit / (build cost)</td>${cases.map(c =>
+            `<td class="num" style="color:${c.plan.full.profit >= 0 ? 'var(--brand)' : 'var(--down)'}">${VLR.fmt.inr(c.plan.full.profit)}</td>`).join('')}</tr>
+          ${row('Revenue per ₹1 of net spend', c => c.plan.revenuePerRupee, x => x.toFixed(2) + '×')}
+          ${row('Cumulative breakeven', c => c.plan.breakEvenMonth, x => x ? 'Month ' + x : 'Beyond 36')}
+          ${row('Monthly revenue by month 36', c => c.plan.exitMrr)}
+          ${row('Peak capital required', c => c.plan.peakCapital)}
+        </tbody>
+      </table>
+      <div class="callout"><b>The pattern to notice:</b> revenue compounds while cost stays broadly flat, so the larger the commitment the harder every rupee works — ${cases[2].plan.revenuePerRupee.toFixed(2)}× on the high case against ${cases[0].plan.revenuePerRupee.toFixed(2)}× on the low one, and ${VLR.fmt.inr(cases[2].plan.exitMrr)} a month arriving by month 36. Low is deliberately marginal: at a solo-operator budget the three-year return hovers near 1× and breakeven arrives late. That is the argument for the middle case — arithmetic, not pressure.</div>`;
+    })()}
+
+    <div class="sign-grid" style="margin-top:24px">
       <div class="sign-box"><div class="who">${VLR.fmt.esc(d.displayName)} — plan agreed</div><div class="line"></div>
         <div class="f">${VLR.fmt.esc(p.signatoryName || '—')}<br>Date: ______________</div></div>
       <div class="sign-box"><div class="who">Valura — plan signed off</div><div class="line"></div>
         <div class="f">${VLR.fmt.esc(C.team.BD.name)} · ${VLR.fmt.esc(C.team.FINANCE.name)}<br>Date: ______________</div></div>
     </div>
-    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · year one · projections, not guarantees')}
+    ${VLR.Doc.foot(p, d.ent.legalName, 'Business plan · illustrative model, not an offer or advice')}
   </section>`;
 };
-
 /* -- Quarterly statement --------------------------------------------------- */
 VLR.Doc.statement = function (p) {
   const d = VLR.derive(p);

@@ -18,7 +18,10 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') throw new HubError(405, 'Use POST.');
     authorise(req);
 
-    const { partner, valuraSigner, expiryDays, notes, dryRun } = await body(req);
+    const { partner, valuraSigner, expiryDays, notes, dryRun, doc } = await body(req);
+    /* The Introducing Broker Agreement is what goes out for signature.
+       `doc: 'agreement'` still renders the older Partner Agreement template. */
+    const which = doc === 'agreement' ? 'agreement' : 'ib';
     if (!partner) throw new HubError(400, 'No partner record in the request body.');
 
     /* -- Refuse to send something that should not be sent ----------------- */
@@ -46,7 +49,7 @@ export default async function handler(req, res) {
     /* -- Render exactly what the Hub displays ----------------------------- */
     const origin = originOf(req);
     const { pdf, meta } = await renderPdf({
-      origin, partner, doc: 'agreement', opts: { esign: true, showVars: false }
+      origin, partner, doc: which, opts: { esign: true, showVars: false }
     });
 
     const pages = pageCount(pdf);
@@ -64,9 +67,12 @@ export default async function handler(req, res) {
       x: f.x * PX_TO_PT, y: f.y * PX_TO_PT, w: f.w * PX_TO_PT, h: f.h * PX_TO_PT
     }));
 
+    /* The partner's own name is on the request, the file and the covering
+       note — this is what they see in the Zoho email before they open it. */
     const name = partner.tradingName || partner.legalName;
-    const requestName = `Valura Partner Agreement — ${name}`;
-    const filename = `valura-partner-agreement-${(partner.slug || 'partner')}.pdf`;
+    const docTitle = which === 'ib' ? 'Introducing Broker Agreement' : 'Partner Agreement';
+    const requestName = `${docTitle} — Valura × ${name}`;
+    const filename = `valura-${which === 'ib' ? 'introducing-broker' : 'partner'}-agreement-${(partner.slug || 'partner')}.pdf`;
 
     if (dryRun) {
       return res.status(200).json({
@@ -81,7 +87,7 @@ export default async function handler(req, res) {
     const created = await createRequest({
       pdf, filename, requestName,
       expiryDays: expiryDays || 15,
-      notes: notes || `Partner Agreement v2.0 for ${name}, effective ${partner.effectiveDate}.`,
+      notes: notes || `${docTitle} between Valura India IFSC Private Limited and ${name}, effective ${partner.effectiveDate}. Schedule A carries the agreed revenue share.`,
       actions: [
         { name: signer.name, email: signer.email, note: 'Counter-signature for Valura.' },
         { name: partner.signatoryName, email: partner.signatoryEmail,

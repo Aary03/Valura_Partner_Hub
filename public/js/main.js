@@ -19,9 +19,10 @@ VLR.App = (function () {
       { k: 'calendar', no: '02', label: 'Activation calendar' }
     ]},
     { group: 'Commercial', items: [
-      { k: 'economics', no: '03', label: 'Earnings illustrator' },
-      { k: 'commercial', no: '04', label: 'Term sheet & briefs' },
-      { k: 'agreement', no: '05', label: 'Agreement & schedules' }
+      { k: 'pricing',   no: '03', label: 'Pricing & revenue share' },
+      { k: 'economics', no: '04', label: 'Earnings illustrator' },
+      { k: 'commercial', no: '05', label: 'Term sheet & briefs' },
+      { k: 'agreement', no: '06', label: 'Agreement & signing' }
     ]},
     { group: 'Activation', items: [
       { k: 'compliance', no: '06', label: 'KYB & disclosure' },
@@ -144,6 +145,7 @@ VLR.App = (function () {
     if (!p) { body.innerHTML = emptyState(); return; }
     body.innerHTML = ({
       pipeline: vPipeline, setup: vSetup, calendar: vCalendar, economics: vEconomics,
+      pricing: vPricing,
       commercial: vCommercial, agreement: vAgreement, compliance: vCompliance,
       collateral: vCollateral, emails: vEmails, plan: vPlan, pack: vPack, programme: vProgramme
     }[view] || vPipeline)(p);
@@ -421,6 +423,13 @@ VLR.App = (function () {
           <div>${f('Tagline', 'tagline')}</div>
           <div>${f('Languages clients read in', 'languages', 'text', 'Decides whether collateral is produced once or four times.')}</div>
         </div>
+        <div class="grid g2" style="margin-top:4px">
+          <div>${f('Logo URL — light background', 'logoLightUrl', 'url', 'For <b>email only</b>. Mail clients drop embedded images, so a co-branded email needs the mark at a real https address. Without one the email falls back to the partner name in type rather than a broken image.')}</div>
+          <div>${f('Logo URL — dark background', 'logoDarkUrl', 'url', 'Used on the ink band at the top of every co-branded email.')}</div>
+        </div>
+        ${(p.logoLight || p.logoDark) && !(p.logoLightUrl || p.logoDarkUrl)
+          ? `<div class="banner warn"><div><b>The uploaded logo will not appear in email.</b> It is embedded in the file, which is fine for the microsite, the cards and every PDF — but Gmail and Outlook strip embedded images. Host the mark somewhere public and paste the URL above, and the co-branded emails will carry it.</div></div>`
+          : ''}
       </fieldset>
 
       <fieldset>
@@ -626,6 +635,118 @@ VLR.App = (function () {
     </div>`;
   }
 
+  /* -- Pricing & revenue share -------------------------------------------- */
+  function vPricing(p) {
+    const d = VLR.derive(p);
+    const C = VLR.CONFIG, P = C.pricing;
+    const pr = VLR.Econ.pricingFor(p);
+    const bps = n => Number(n).toFixed(Number(n) % 1 === 0 ? 0 : 1);
+    const all = [...pr.brokerage, pr.platform, pr.placement];
+    const markup = all.reduce((s, l) => s + l.markupOverBaselineBps, 0);
+    const nonStandard = all.filter(l => Math.abs(l.split - P.defaultSplit) > 1e-9);
+
+    const slider = (l, per) => `
+      <tr${Math.abs(l.split - P.defaultSplit) > 1e-9 ? ' style="background:var(--brand-tint)"' : ''}>
+        <td><b>${VLR.fmt.esc(l.label)}</b></td>
+        <td class="num">${bps(l.costBps)}</td>
+        <td class="num">${bps(l.valuraKeepsBps)}</td>
+        <td style="width:186px">
+          <div class="inline" style="gap:8px">
+            <input type="range" min="0" max="80" step="5" value="${Math.round(l.split * 100)}"
+                   data-split="${l.key}" style="flex:1;accent-color:var(--brand)">
+            <input type="number" min="0" max="80" step="1" value="${Math.round(l.split * 100)}"
+                   data-split="${l.key}" class="mono" style="width:58px;flex:none;text-align:right">
+          </div>
+        </td>
+        <td class="num" style="color:var(--brand-deep)"><b>${bps(l.partnerEarnsBps)}</b></td>
+        <td class="num">${bps(l.shareableBps)}</td>
+        <td class="num"><b>${bps(l.clientPaysBps)}</b>${per ? ' <span class="faint">' + per + '</span>' : ''}</td>
+        <td class="num" style="color:${l.markupOverBaselineBps > 0.01 ? 'var(--down)' : 'var(--text-faint)'}">
+          ${l.markupOverBaselineBps > 0.01 ? '+' + bps(l.markupOverBaselineBps) : '—'}</td>
+      </tr>`;
+
+    return `<div class="sheet wide">
+      ${head('Pricing & revenue share', 'Set the split. <em>Watch the client price move.</em>',
+        `Cost plus a mark-up, not a slice of a fixed fee. Every product carries a hard cost and a fixed amount Valura keeps; the partner's split is applied on top. Raise it and the partner earns more and their client pays more — Valura's retained margin never moves, which is exactly why this can be negotiated in the open.`)}
+
+      <div class="grid g4" style="margin-bottom:22px">
+        <div class="stat hl"><div class="lbl">Blended partner rate</div>
+          <div class="v">${VLR.fmt.pct(VLR.Econ.blendedFromPricing(p).blended, 3)}</div>
+          <div class="n">Per annum on the book, at this asset mix. Drives the P&amp;L.</div></div>
+        <div class="stat"><div class="lbl">Equity — client pays</div>
+          <div class="v">${bps(pr.brokerage[0].clientPaysBps)}<span style="font-size:13px;color:var(--text-faint)"> bps</span></div>
+          <div class="n">Partner earns ${bps(pr.brokerage[0].partnerEarnsBps)} · Valura keeps ${bps(pr.brokerage[0].valuraKeepsBps)}</div></div>
+        <div class="stat"><div class="lbl">Platform — client pays</div>
+          <div class="v">${bps(pr.platform.clientPaysBps)}<span style="font-size:13px;color:var(--text-faint)"> bps p.a.</span></div>
+          <div class="n">Cost ${bps(pr.platform.costBps)} · Valura keeps ${bps(pr.platform.valuraKeepsBps)}</div></div>
+        <div class="stat ${markup > 0.01 ? 'hl' : ''}"><div class="lbl">Above the standard split</div>
+          <div class="v">${markup > 0.01 ? '+' + bps(markup) : '—'}<span style="font-size:13px;color:var(--text-faint)">${markup > 0.01 ? ' bps' : ''}</span></div>
+          <div class="n">${markup > 0.01 ? 'Total extra the clients of this partner pay' : `Every product at the standard ${VLR.fmt.pct(P.defaultSplit, 0)}`}</div></div>
+      </div>
+
+      ${nonStandard.length ? `<div class="banner warn"><div><b>${nonStandard.length} product${nonStandard.length > 1 ? 's are' : ' is'} priced away from the standard ${VLR.fmt.pct(P.defaultSplit, 0)}.</b>
+        ${VLR.fmt.esc(nonStandard.map(l => l.label + ' at ' + Math.round(l.split * 100) + '%').join(', '))}.
+        The clients of this partner pay more than the clients of a standard partner, and the amount this partner earns is disclosed to each of them before their account is opened.</div></div>` : ''}
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="lbl">Assign the split — ${VLR.fmt.esc(d.displayName)}</div><div class="eyebrow-rule"></div>
+        <table class="t" style="margin-top:14px">
+          <thead><tr>
+            <th>Product</th><th class="num">Cost</th><th class="num">Valura keeps</th>
+            <th>Partner split</th><th class="num">Partner earns</th><th class="num">Shareable</th>
+            <th class="num">Client pays</th><th class="num">vs standard</th>
+          </tr></thead>
+          <tbody>
+            <tr><td colspan="8" class="lbl" style="background:var(--paper-2);padding:6px 10px">Brokerage — per trade on the amount transacted</td></tr>
+            ${pr.brokerage.map(l => slider(l)).join('')}
+            <tr><td colspan="8" class="lbl" style="background:var(--paper-2);padding:6px 10px">Platform fee — per year on assets held</td></tr>
+            ${slider(pr.platform, 'p.a.')}
+            <tr><td colspan="8" class="lbl" style="background:var(--paper-2);padding:6px 10px">Placement — pre-IPO and private markets</td></tr>
+            ${slider(pr.placement, 'per deal')}
+          </tbody>
+        </table>
+        <div class="inline" style="margin-top:14px;justify-content:flex-start">
+          <button class="btn sm ghost" data-act="split-reset" style="flex:none">Reset to standard ${VLR.fmt.pct(P.defaultSplit, 0)}</button>
+          <button class="btn sm" data-act="split-agree" style="flex:none">Mark as agreed</button>
+          <span class="muted" style="flex:none;font-size:12px">${p.splitsAgreedAt
+            ? `Agreed ${VLR.fmt.date(p.splitsAgreedAt)} by ${VLR.fmt.esc(p.splitsAgreedBy || '—')}`
+            : 'Not yet agreed — Schedule A shows these as proposed.'}</span>
+        </div>
+      </div>
+
+      <div class="split">
+        <div>
+          <div class="lbl">The arithmetic</div><div class="eyebrow-rule"></div>
+          <p class="muted" style="font-size:13px;margin-top:12px">
+            <span class="mono" style="font-size:12px">partner = keeps × split ÷ (1 − split)</span><br><br>
+            At ${VLR.fmt.pct(P.defaultSplit, 0)} the partner earns exactly what Valura keeps. At 60% they earn 1.5× it,
+            and the extra is added to the client price. Nothing is taken from Valura's margin, and nothing
+            is taken from any other party in the chain.</p>
+          <p class="muted" style="font-size:13px">${VLR.fmt.esc(P.exempt)}</p>
+        </div>
+        <div class="card sunken">
+          <div class="lbl">What each split does to equity brokerage</div><div class="eyebrow-rule"></div>
+          <table class="t" style="margin-top:12px">
+            <thead><tr><th class="num">Split</th><th class="num">Partner earns</th><th class="num">Client pays</th><th class="num">Valura keeps</th></tr></thead>
+            <tbody>${[0.30, 0.40, 0.50, 0.60, 0.70, 0.75].map(s => {
+              const l = VLR.Econ.priceLine(C.pricing.brokerage[0], s);
+              const on = Math.abs(s - pr.brokerage[0].split) < 1e-9;
+              return `<tr${on ? ' style="background:var(--brand-tint);font-weight:600"' : ''}>
+                <td class="num">${VLR.fmt.pct(s, 0)}</td>
+                <td class="num">${bps(l.partnerEarnsBps)} bps</td>
+                <td class="num">${bps(l.clientPaysBps)} bps</td>
+                <td class="num">${bps(l.valuraKeepsBps)} bps</td></tr>`;
+            }).join('')}</tbody>
+          </table>
+          <p class="faint" style="font-size:11.5px;margin-top:10px">Valura's column does not move. That is the structure working.</p>
+        </div>
+      </div>
+
+      ${tabs('pricing', [{ k: 'sheet', label: 'Pricing sheet — as issued' }])}
+      <div class="stage-wrap" id="print-area">${VLR.Doc.pricingSheet(p)}</div>
+    </div>`;
+  }
+
   /* -- Economics ---------------------------------------------------------- */
   function vEconomics(p) {
     const d = VLR.derive(p);
@@ -753,22 +874,37 @@ VLR.App = (function () {
     const d = VLR.derive(p);
     const nonStd = (p.nonStandardTerms || []);
     return `<div class="sheet wide">
-      ${head('Agreement & schedules', `${VLR.CONFIG.ops.templateVersion} — <em>three defects fixed, two clauses added</em>.`,
-        'Generated from the variable set only. Anything outside it is a non-standard term and needs two recorded approvals before this document can be issued for signature.')}
+      ${head('Agreement & signing', `${VLR.CONFIG.ibTerms.version} — <em>filled from the record, signed through Zoho</em>.`,
+        `Every party detail, the partner's mark and the agreed revenue share come from this partner's record. Nothing is typed into the document. What goes out for signature is the Introducing Broker Agreement with Schedule A carrying the split set on the pricing tab.`)}
 
       <div class="grid g4" style="margin-bottom:22px">
-        <div class="stat hl"><div class="lbl">Fix 1 · platform fee</div><div class="v sm">${VLR.fmt.pct(d.platformSharePct, 0)} of collected</div><div class="n">Was a fixed 0.35% out of a 0.30% fee — negative margin on every rupee.</div></div>
-        <div class="stat hl"><div class="lbl">Fix 2 · tail</div><div class="v sm">${VLR.fmt.esc(d.tailLabel)}</div><div class="n">Was perpetual and uncapped for every partner, including month-two churn.</div></div>
-        <div class="stat hl"><div class="lbl">Fix 3 · incentives</div><div class="v sm">${VLR.CONFIG.incentiveGrid.ref}</div><div class="n">Was an open negotiation conceded in principle to everyone.</div></div>
-        <div class="stat hl"><div class="lbl">New · Schedules C & D</div><div class="v sm">Grid + licence</div><div class="n">Trademark licence and data protection did not previously exist.</div></div>
+        <div class="stat hl"><div class="lbl">Exclusivity clause</div><div class="v sm">Removed</div><div class="n">§2.6 struck on instruction. §2 now runs 2.1 to 2.5.</div></div>
+        <div class="stat"><div class="lbl">Schedule A</div><div class="v sm">${VLR.fmt.pct(VLR.Econ.pricingFor(p).brokerage[0].split, 0)} on equity</div><div class="n">Live from the pricing tab — not typed into the document.</div></div>
+        <div class="stat"><div class="lbl">Revenue tail</div><div class="v sm">Perpetual</div><div class="n">§8.1 — continues while the client's assets stay, whether or not the agreement is live.</div></div>
+        <div class="stat"><div class="lbl">Governing law</div><div class="v sm">India · IFSCA</div><div class="n">v6 wording. Seat at GIFT City IFSC.</div></div>
       </div>
+
+      <div class="banner warn"><div><b>One change was made to the template you supplied.</b> §2.6 — the clause reading
+        &ldquo;This Agreement is non-exclusive&hellip; Valura and its affiliates may compete with the Introducing Broker in any aspect of its business&rdquo; — has been removed in full.
+        The words &ldquo;non-exclusive&rdquo; remain in §2.2 and §3.1, which describe the appointment itself. Striking those too would make the appointment
+        <b>exclusive</b> and commit Valura to a territory, which is a commercial decision rather than a tidy-up. Say the word if that is what you meant.</div></div>
 
       ${nonStd.length ? `<div class="banner stop"><div><b>${nonStd.length} non-standard term(s).</b> ${nonStd.filter(n => (n.approvals || []).length < 2).length} still awaiting a second approval. The Hub will not mark this agreement issuable until every deviation carries two.</div></div>` : ''}
 
       ${esignPanel(p)}
 
-      ${tabs('agreement', [{ k: 'doc', label: 'Full agreement' }, { k: 'esign', label: 'E-sign copy' }])}
-      <div class="stage-wrap" id="print-area">${VLR.Doc.agreement(p, { showVars, esign: tabOf('agreement', [{ k: 'doc' }, { k: 'esign' }]) === 'esign' })}</div>
+      ${(() => {
+        const list = [
+          { k: 'ib', label: 'Introducing Broker Agreement v6' },
+          { k: 'ibsign', label: 'IB — e-sign copy' },
+          { k: 'legacy', label: 'Partner Agreement v2.0 (legacy)' }
+        ];
+        const t = tabOf('agreement', list);
+        const body = t === 'legacy'
+          ? VLR.Doc.agreement(p, { showVars, esign: false })
+          : VLR.Doc.introducingBroker(p, { showVars, esign: t === 'ibsign' });
+        return tabs('agreement', list) + `<div class="stage-wrap" id="print-area">${body}</div>`;
+      })()}
     </div>`;
   }
 
@@ -1204,6 +1340,20 @@ VLR.App = (function () {
         break;
       }
 
+      /* -- pricing --------------------------------------------------------- */
+      case 'split-reset':
+        p.splits = {}; VLR.Store.audit(p, 'Splits reset to standard');
+        VLR.Store.save(); render(); toast('Reset to standard'); break;
+
+      case 'split-agree': {
+        const by = prompt('Who approved this pricing?', VLR.CONFIG.team.ADMIN.name);
+        if (!by) break;
+        p.splitsAgreedBy = by;
+        p.splitsAgreedAt = VLR.fmt.iso(new Date());
+        VLR.Store.audit(p, 'Pricing agreed', JSON.stringify(p.splits));
+        VLR.Store.save(); render(); toast('Pricing agreed'); break;
+      }
+
       /* -- connections --------------------------------------------------- */
       case 'conn-save':
         VLR.Api.save({
@@ -1309,10 +1459,9 @@ VLR.App = (function () {
         if (!confirm(`Send "${e.subject}"\n\nto ${toAddr}\n\nas ${sentBy}?`)) break;
 
         toast('Sending…');
-        const card = document.querySelector('.mail');
         VLR.Api.sendEmail({
           to: e.to, cc: e.cc || undefined, subject: e.subject,
-          html: card ? card.outerHTML : e.body,
+          html: VLR.Doc.emailHtml(p, e),
           replyTo: VLR.CONFIG.ops.partnersEmail, sentBy
         }).then(r => {
           p.emailLog = p.emailLog || [];
@@ -1347,6 +1496,28 @@ VLR.App = (function () {
       renderTop(p);
       return;
     }
+    /* Pricing splits — the slider and its number box stay in step, and the
+       whole view re-renders so the client price moves as you drag. */
+    if (t.dataset.split) {
+      const pct = Math.min(80, Math.max(0, Number(t.value) || 0));
+      p.splits = p.splits || {};
+      p.splits[t.dataset.split] = pct / 100;
+      VLR.Store.save();
+      document.querySelectorAll(`[data-split="${t.dataset.split}"]`)
+        .forEach(o => { if (o !== t) o.value = pct; });
+      clearTimeout(onInput._t);
+      onInput._t = setTimeout(() => {
+        const active = document.activeElement;
+        const key = active && active.dataset ? active.dataset.split : null;
+        render();
+        if (key) {
+          const again = document.querySelector(`input[type="range"][data-split="${key}"]`);
+          if (again) again.focus();
+        }
+      }, 220);
+      return;
+    }
+
     if (t.dataset.pk) {
       const [i, key] = t.dataset.pk.split(':');
       const person = p.people[Number(i)];

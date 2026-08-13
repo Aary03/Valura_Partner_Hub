@@ -241,6 +241,270 @@ VLR.Econ = (function () {
     return `RD-${partner.partnerCode || 'PENDING'}-${p}${b}${l}-${(partner.effectiveDate || '').replace(/-/g, '') || 'NODATE'}`;
   }
 
+  /* =======================================================================
+     PARTNER PRICING — cost plus a split mark-up
+     -----------------------------------------------------------------------
+         partnerEarns = valuraKeeps × split / (1 − split)
+         shareable    = valuraKeeps + partnerEarns
+         clientPays   = cost + shareable
+
+     One function. The pricing tab, Schedule A of the agreement, the client
+     referral disclosure and the P&L all read it, so a split changed in one
+     place moves every one of them together.
+     ==================================================================== */
+  function priceLine(line, split) {
+    const s = split == null ? C().pricing.defaultSplit : Number(split);
+    /* A 100% split would divide by zero — and would mean Valura marks up
+       infinitely for the partner's benefit, which is not a thing. */
+    const safe = Math.min(Math.max(s, 0), 0.95);
+    const partnerEarns = safe === 0 ? 0 : line.valuraKeepsBps * safe / (1 - safe);
+    const shareable = line.valuraKeepsBps + partnerEarns;
+    const clientPays = line.costBps + shareable;
+    return {
+      ...line, split: safe, partnerEarnsBps: partnerEarns,
+      shareableBps: shareable, clientPaysBps: clientPays,
+      partnerShareOfShareable: shareable ? partnerEarns / shareable : 0,
+      /* What the client pays at the default split, to show the mark-up. */
+      baselineClientPaysBps: line.costBps + line.valuraKeepsBps * 2,
+      markupOverBaselineBps: clientPays - (line.costBps + line.valuraKeepsBps * 2)
+    };
+  }
+
+  /* The whole sheet for one partner. `splits` is { key: fraction }. */
+  function pricingFor(partner) {
+    const P = C().pricing;
+    const splits = (partner && partner.splits) || {};
+    const get = k => splits[k] != null ? splits[k] : P.defaultSplit;
+    return {
+      brokerage: P.brokerage.map(l => priceLine(l, get(l.key))),
+      platform: priceLine(P.platform, get(P.platform.key)),
+      placement: priceLine(P.placement, get(P.placement.key)),
+      defaultSplit: P.defaultSplit
+    };
+  }
+
+  /* Blended partner earning rate implied by the pricing sheet and the
+     partner's asset mix — this is what replaces a hand-typed rate. */
+  function blendedFromPricing(partner, mix) {
+    const pr = pricingFor(partner);
+    const classes = (mix && mix.classes) || C().assetMix.classes;
+    const bpsToRate = b => b / 10000;
+    const brokerageFor = key => {
+      const m = { EQ: 'EQ', BOND: 'BOND', SN: 'SN', MF: 'MF', PREIPO: 'EQ', PMS: 'EQ' };
+      const line = pr.brokerage.find(l => l.key === (m[key] || 'EQ')) || pr.brokerage[0];
+      return line;
+    };
+    const rows = classes.map(c => {
+      const brk = brokerageFor(c.key);
+      const platform = bpsToRate(pr.platform.partnerEarnsBps);
+      const brokerage = bpsToRate(brk.partnerEarnsBps) * c.rotation;
+      const placement = (c.key === 'PREIPO' || c.key === 'PMS' || c.key === 'SN')
+        ? bpsToRate(pr.placement.partnerEarnsBps) * (c.key === 'SN' ? 0.5 : 1) : 0;
+      const trail = c.trail;
+      const rate = platform + brokerage + placement + trail;
+      return { ...c, platformRate: platform, brokerageRate: brokerage, placementRate: placement,
+               trailRate: trail, rate, contribution: c.weight * rate };
+    });
+    const blended = rows.reduce((s, r) => s + r.contribution, 0);
+    return { rows: rows.map(r => ({ ...r, shareOfEarnings: blended ? r.contribution / blended : 0 })),
+             blended, pricing: pr };
+  }
+
+  /* =======================================================================
+     THE FINALISED PARTNER P&L MODEL
+     -----------------------------------------------------------------------
+     Ported from Valura_Partner_PnL_Dashboard.xlsx. Same arithmetic, same
+     order of operations, so a figure quoted here reconciles to the workbook.
+
+     The engine is three lines:
+       rate    = Σ weight × (platform + brokerage×rotation + placement + trail)
+       roll    = (retention × (1 + growth)) ^ (1/12)
+       AUM(m)  = AUM(m−1) × roll + newBusiness(m)
+       rev(m)  = mean(AUM(m−1), AUM(m)) × rate / 12
+     ==================================================================== */
+
+  /* Blended partner earning rate, built up class by class. */
+  function blendedRate(mix) {
+    const classes = (mix && mix.classes) || C().assetMix.classes;
+    const rows = classes.map(c => {
+      const rate = c.platform + c.brokerage * c.rotation + c.placement + c.trail;
+      return { ...c, rate, contribution: c.weight * rate };
+    });
+    const blended = rows.reduce((s, r) => s + r.contribution, 0);
+    return {
+      rows: rows.map(r => ({ ...r, shareOfEarnings: blended ? r.contribution / blended : 0 })),
+      blended,
+      weightTotal: rows.reduce((s, r) => s + r.weight, 0)
+    };
+  }
+
+  /* The monthly cost base, with the 8% escalator stepping at months 13 and 25. */
+  function budget(opts) {
+    const o = opts || {};
+    const b = C().budget;
+    const lines = (o.lines || b.lines);
+    const esc = o.escalator != null ? o.escalator : b.escalator;
+
+    const rows = lines.map(l => {
+      const valuraPays = l.monthly * l.coFund;
+      return { ...l, valuraPays, partnerNet: l.monthly - valuraPays, annualNet: (l.monthly - valuraPays) * 12 };
+    });
+    const grossMonthly = rows.reduce((s, r) => s + r.monthly, 0);
+    const valuraMonthly = rows.reduce((s, r) => s + r.valuraPays, 0);
+    const centralAnnual = (o.centralPool || b.centralPool).reduce((s, r) => s + r.annual, 0);
+
+    return {
+      rows, grossMonthly, valuraMonthly,
+      netMonthly: grossMonthly - valuraMonthly,
+      coFundPct: grossMonthly ? valuraMonthly / grossMonthly : 0,
+      centralAnnual,
+      /* The number to show the partner: line-level co-marketing plus the pool. */
+      valuraTotalAnnual: valuraMonthly * 12 + centralAnnual,
+      escalatingGross: rows.filter(r => r.escalates).reduce((s, r) => s + r.monthly, 0),
+      flatGross: rows.filter(r => !r.escalates).reduce((s, r) => s + r.monthly, 0),
+      escalatingCoFund: rows.filter(r => r.escalates).reduce((s, r) => s + r.valuraPays, 0),
+      flatCoFund: rows.filter(r => !r.escalates).reduce((s, r) => s + r.valuraPays, 0),
+      escalator: esc
+    };
+  }
+
+  /* The full month-by-month plan. Everything in INR unless suffixed Usd. */
+  function partnerPlan(opts) {
+    const o = opts || {};
+    const P = C().planDefaults;
+    const fx = o.fx || C().ops.fxUsdInr;
+
+    const clientsPerMonth = o.clientsPerMonth ?? P.clientsPerMonth;
+    const rampMonths      = o.rampMonths ?? P.rampMonths;
+    const avgTicket       = o.avgTicketInr ?? P.avgTicketInr;
+    const migrated        = o.migratedBookInr ?? P.migratedBookInr;
+    const retention       = o.retention ?? P.retention;
+    const growth          = o.aumGrowth ?? P.aumGrowth;
+    const horizon         = o.horizonMonths ?? P.horizonMonths;
+
+    const rate = o.blendedRate != null ? o.blendedRate : blendedRate(o.mix).blended;
+    const roll = Math.pow(retention * (1 + growth), 1 / 12);
+
+    const bud = budget(o);
+    const esc = bud.escalator;
+    const sec = C().budget.secondRm;
+
+    /* Anchor override on a sub-partner book that ramps on the same curve. */
+    const isAnchor = Boolean(o.anchor);
+    const subPerMonth = o.subPartnerAumPerMonthInr ?? P.subPartnerAumPerMonthInr;
+    const overrideRate = o.anchorOverrideRate ?? C().assetMix.anchorOverrideRate;
+
+    const dayOne = o.includeDayOne === false ? 0 : (o.dayOneInr != null ? o.dayOneInr
+      : P.dayOne.officeDepositMonths * (bud.rows[0] ? bud.rows[0].monthly : 0)
+        + P.dayOne.capexInr + P.dayOne.licensingInr);
+
+    const months = [];
+    let aum = 0, subAum = 0, clients = 0, cum = -dayOne, peak = -dayOne, peakMonth = 0, breakEven = null;
+
+    for (let m = 1; m <= horizon; m++) {
+      const rampFactor = Math.min(1, m / rampMonths);
+      const newClients = clientsPerMonth * rampFactor;
+      const newBusiness = clientsPerMonth * avgTicket * rampFactor
+        + (m <= rampMonths ? migrated / rampMonths : 0);
+
+      const openAum = aum;
+      aum = aum * roll + newBusiness;
+      clients += newClients;
+
+      const openSub = subAum;
+      if (isAnchor) subAum = subAum * roll + subPerMonth * rampFactor;
+
+      const ownRevenue = ((openAum + aum) / 2) * rate / 12;
+      const overrideRevenue = isAnchor ? ((openSub + subAum) / 2) * overrideRate / 12 : 0;
+      const revenue = ownRevenue + overrideRevenue;
+
+      /* Cost: flat lines hold, escalating lines step 8% at months 13 and 25. */
+      const step = m <= 12 ? 0 : (m <= 24 ? 1 : 2);
+      const escFactor = Math.pow(1 + esc, step);
+      const secondRmOn = clients >= sec.triggerClients || aum >= sec.triggerAumInr;
+      const secondRmCost = secondRmOn ? sec.monthlyInr * escFactor : 0;
+
+      const gross = bud.flatGross + bud.escalatingGross * escFactor + secondRmCost;
+      const coFund = bud.flatCoFund + bud.escalatingCoFund * escFactor;
+      const net = gross - coFund;
+
+      const profit = revenue - net;
+      cum += profit;
+      if (cum < peak) { peak = cum; peakMonth = m; }
+      if (breakEven === null && cum >= 0) breakEven = m;
+
+      months.push({
+        month: m, clients, newClients,
+        openAum, closingAum: aum, avgAum: (openAum + aum) / 2,
+        subAum, ownRevenue, overrideRevenue, revenue,
+        gross, coFund, net, profit, cumulative: cum, secondRmOn
+      });
+    }
+
+    const sum = (arr, k, from, to) => arr.slice(from, to).reduce((s, r) => s + r[k], 0);
+    const window = (from, to) => ({
+      revenue: sum(months, 'revenue', from, to),
+      gross:   sum(months, 'gross', from, to),
+      coFund:  sum(months, 'coFund', from, to),
+      net:     sum(months, 'net', from, to),
+      profit:  sum(months, 'profit', from, to),
+      closingAum: months[Math.min(to, months.length) - 1] ? months[Math.min(to, months.length) - 1].closingAum : 0,
+      clients:    months[Math.min(to, months.length) - 1] ? months[Math.min(to, months.length) - 1].clients : 0
+    });
+
+    const totalNet = sum(months, 'net', 0, horizon);
+    const totalRev = sum(months, 'revenue', 0, horizon);
+    const last = months[months.length - 1];
+
+    return {
+      inputs: { clientsPerMonth, rampMonths, avgTicket, migrated, retention, growth, horizon, rate, roll, isAnchor, fx },
+      rate, roll, budget: bud, dayOne, months,
+      m6: window(0, 6), y1: window(0, 12), full: window(0, horizon),
+      /* Working capital — the deepest the cumulative position ever goes. */
+      peakCapital: -peak, peakMonth, reserve: -peak * 1.2, breakEvenMonth: breakEven,
+      /* Output measures */
+      costPerClient: last && last.clients ? totalNet / last.clients : 0,
+      revenuePerRupee: totalNet ? totalRev / totalNet : 0,
+      aumPerRupee: totalNet && last ? last.closingAum / totalNet : 0,
+      exitMrr: last ? last.revenue : 0,
+      year3RunRate: sum(months, 'revenue', 24, 36),
+      valuraTotalAnnual: bud.valuraTotalAnnual
+    };
+  }
+
+  /* Low / Medium / High, run through the identical engine so the comparison
+     isolates what the partner actually controls. */
+  function threeCases(opts) {
+    const o = opts || {};
+    return Object.entries(C().cases).map(([key, c]) => {
+      const scaled = C().budget.lines.map(l => ({
+        ...l, monthly: l.monthly * (c.grossMonthlyInr / 218000)
+      }));
+      const p = partnerPlan({
+        ...o,
+        lines: scaled,
+        clientsPerMonth: c.clientsPerMonth,
+        avgTicketInr: c.avgTicketInr,
+        migratedBookInr: c.migratedBookInr,
+        rampMonths: c.rampMonths
+      });
+      return { key, ...c, plan: p };
+    });
+  }
+
+  /* What Valura carries that never lands on the partner's cost sheet. */
+  function valuraBorne() {
+    const rows = C().valuraBorne;
+    return {
+      rows,
+      annualInr: rows.reduce((s, r) => s + (r.listedInr || 0), 0),
+      countedItems: rows.filter(r => r.listedInr).length,
+      totalItems: rows.length
+    };
+  }
+
   return { recurring, placement, placementOnDeal, override, ladder, overrideLadder,
-           plan, breakEvenMonth, disclosure, disclosureVersion, LADDER, NET_LADDER };
+           plan, breakEvenMonth, disclosure, disclosureVersion, LADDER, NET_LADDER,
+           blendedRate, budget, partnerPlan, threeCases, valuraBorne,
+           priceLine, pricingFor, blendedFromPricing };
 })();

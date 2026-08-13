@@ -32,6 +32,8 @@
 <script src="js/calendar.js"></script>
 <script src="js/docs/shared.js"></script>
 <script src="js/docs/agreement.js"></script>
+<script src="js/docs/introducing.js"></script>
+<script src="js/docs/pricing.js"></script>
 <script src="js/docs/commercial.js"></script>
 <script src="js/docs/emails.js"></script>
 <script src="js/docs/collateral.js"></script>
@@ -40,6 +42,9 @@
 (function () {
   /* Which artefacts can be printed, and whether they are landscape. */
   const DOCS = {
+    /* `ib` is the document that goes out for signature. */
+    ib:          { fn: (p, o) => VLR.Doc.introducingBroker(p, o) },
+    pricing:     { fn: p => VLR.Doc.pricingSheet(p) },
     agreement:   { fn: (p, o) => VLR.Doc.agreement(p, o) },
     termsheet:   { fn: p => VLR.Doc.termSheet(p) },
     onepager:    { fn: p => VLR.Doc.onePager(p), landscape: true },
@@ -58,7 +63,8 @@
     letterhead:  { fn: p => VLR.Doc.letterhead(p) },
     pack: {
       fn: (p, o) => [
-        VLR.Doc.termSheet(p), VLR.Doc.agreement(p, o), VLR.Doc.onePager(p),
+        VLR.Doc.termSheet(p), VLR.Doc.pricingSheet(p), VLR.Doc.introducingBroker(p, o),
+        VLR.Doc.onePager(p),
         VLR.Doc.segmentPage(p), VLR.Doc.intakeForm(p), VLR.Doc.kybChecklist(p),
         VLR.Doc.disclosureDoc(p), VLR.Doc.guardrails(p), VLR.Doc.businessPlan(p),
         VLR.Doc.statement(p), VLR.Doc.onboardingWrapper(p), VLR.Doc.invite(p),

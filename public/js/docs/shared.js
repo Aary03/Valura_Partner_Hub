@@ -15,9 +15,16 @@ VLR.Doc.lockup = function (p, opts) {
   const o = opts || {};
   const d = VLR.derive(p);
   const onInk = o.onInk !== false;
-  const mark = onInk ? VLR.Doc.MARK_WHITE : VLR.Doc.MARK_GREEN;
+  const abs = u => o.forEmail && u && !/^https?:/i.test(u)
+    ? (location.origin + '/' + String(u).replace(/^\//, '')) : u;
+  const mark = abs(onInk ? VLR.Doc.MARK_WHITE : VLR.Doc.MARK_GREEN);
   const col = onInk ? '#fff' : 'var(--ink)';
-  const logo = onInk ? (p.logoDark || p.logoLight) : (p.logoLight || p.logoDark);
+  /* Email clients drop data: URIs, so a co-branded email uses the hosted
+     mark if one has been given and falls back to the partner's name in type
+     rather than shipping a broken image. */
+  const logo = o.forEmail
+    ? (onInk ? (p.logoDarkUrl || p.logoLightUrl) : (p.logoLightUrl || p.logoDarkUrl))
+    : (onInk ? (p.logoDark || p.logoLight) : (p.logoLight || p.logoDark));
   const partnerSlot = logo
     ? `<img class="pmark" src="${logo}" alt="">`
     : `<span class="pname" style="color:${onInk ? '#fff' : d.t ? p.primaryHex : 'var(--ink)'}">${VLR.fmt.esc(d.displayName)}</span>`;

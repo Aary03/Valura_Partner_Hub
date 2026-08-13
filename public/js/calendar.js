@@ -54,8 +54,8 @@ VLR.Cal = (function () {
     { d: 10, k: 'microsite', stage: '04_identity_kit', owner: 'V', hrs: 0, title: 'Microsite live · collateral pack delivered · cards to print',
       detail: 'partner.valura.ai/<slug> with the partner mark in the permitted co-brand position and the partner code baked into every client link. Publication requires the Schedule D trademark licence to be signed.' },
 
-    { d: 12, k: 'training', stage: '05_plan_enable', owner: 'P', hrs: 0, title: 'Training modules open',
-      detail: 'Nine modules, self-paced. Ends in a scored exam. Certification evidences Clause 8.1 and 8.2 compliance if a regulator asks.' },
+    { d: 12, k: 'training', stage: '05_plan_enable', owner: 'B', hrs: 1, at: '15:00', title: 'Training modules open — Karmesh delivers',
+      detail: 'Karmesh issues the nine modules to the partner and runs the session. Self-paced thereafter. Ends in a scored exam. Certification evidences Clause 8.1 and 8.2 compliance if a regulator asks.' },
 
     { d: 14, k: 'exam', stage: '05_plan_enable', owner: 'B', hrs: 1, hard: true, title: 'Certification exam · business plan signed off',
       detail: 'Pass mark 80%. Certification is a hard gate on Stage 06 — there is no launch without it.' },

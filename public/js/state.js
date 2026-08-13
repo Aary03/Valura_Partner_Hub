@@ -83,8 +83,17 @@ VLR.blankPartner = function () {
     /* People who need a co-branded Valura email ID and a visiting card */
     people: [],           // { name, title, mobile, email, wantsEmailId, wantsCard, cardQty }
 
+    /* Pricing — the partner's split per product, as a fraction.
+       Blank inherits VLR.CONFIG.pricing.defaultSplit. Raising a split raises
+       what that partner's clients pay; Valura's retained bps never moves. */
+    splits: {},
+    splitsAgreedAt: '', splitsAgreedBy: '',
+
     /* Brand */
-    logoLight: '', logoDark: '',      // data URLs
+    logoLight: '', logoDark: '',      // data URLs — used on screen and in PDFs
+    /* Email clients do not render data: URIs. A co-branded email needs the
+       mark at a real https URL, so it is held separately. */
+    logoLightUrl: '', logoDarkUrl: '',
     primaryHex: '#0B4F31', secondaryHex: '#02A24B',
     lockup: 'side',                    // side | stacked
     tagline: '', brandFontNote: 'Use Valura typography',

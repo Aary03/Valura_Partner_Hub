@@ -50,6 +50,55 @@ VLR.CONFIG = {
     }
   },
 
+  /* =========================================================================
+     PARTNER PRICING & REVENUE SHARE
+     -------------------------------------------------------------------------
+     Source: Valura_Partner_Pricing_Revenue_Share_1.xlsx.
+
+     This is a cost-plus model, not a share of a fixed fee, and the difference
+     matters. Every product has a hard COST and a fixed amount VALURA KEEPS.
+     The partner's split is applied on top:
+
+         partnerEarns = valuraKeeps × split / (1 − split)
+         shareable    = valuraKeeps + partnerEarns
+         clientPays   = cost + shareable
+
+     So raising a partner's split raises what their client pays. Valura's
+     margin never moves. At a 50% split the partner earns exactly what Valura
+     keeps; at 60% the partner earns 1.5× it and the client pays the
+     difference. That is the lever, and it is per product, per partner.
+
+     ⚠ RECONCILE — at the default 50% split the platform fee lands at 47 bps to
+     the client. The published Schedule of Fees & Charges v4.1 (effective
+     5 August 2026) states 0.35% per year. 35 bps is the COST line here, not
+     the client price. One of the two documents has to move before either is
+     shown to a client. See DECISIONS.md.
+     ====================================================================== */
+  pricing: {
+    source: 'Valura_Partner_Pricing_Revenue_Share_1.xlsx',
+    alignedTo: 'Schedule of Fees & Charges v4.1 · 5 August 2026',
+    defaultSplit: 0.50,
+    /* All rates in basis points. 1 bp = 0.01%. */
+    brokerage: [
+      { key: 'EQ',    label: 'Equity, ETF & listed',   costBps: 10, valuraKeepsBps: 6, canMarkUp: true },
+      { key: 'BOND',  label: 'Fixed income / bonds',   costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
+      { key: 'SN',    label: 'Structured products',    costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
+      { key: 'MF',    label: 'Global mutual funds',    costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
+      { key: 'UCITS', label: 'UCITS funds',            costBps: 10, valuraKeepsBps: 5, canMarkUp: true }
+    ],
+    platform: {
+      key: 'PLATFORM', label: 'Platform fee — all held assets',
+      costBps: 35, valuraKeepsBps: 6, canMarkUp: true, per: 'year',
+      note: '35 bps is our cost. The mark-up is split with you; raise your share and the client pays more, our 6 bps stays.'
+    },
+    placement: {
+      key: 'PREIPO', label: 'Pre-IPO & private markets',
+      costBps: 100, valuraKeepsBps: 150, canMarkUp: true, per: 'deal',
+      note: 'Cost 100 bps, our 150 bps fixed. Raise your share and the client pays more.'
+    },
+    exempt: 'GIFT City funds are exempt from the platform fee. No platform-fee share arises on them.'
+  },
+
   /* -- What the CLIENT actually pays -------------------------------------
      Source: Valura India IFSC — Schedule of Fees & Charges v3.0,
      effective 5 August 2026. Partner compensation is expressed as a SHARE OF
@@ -185,6 +234,161 @@ VLR.CONFIG = {
     ]
   },
 
+  /* =========================================================================
+     THE FINALISED PARTNER P&L MODEL
+     -------------------------------------------------------------------------
+     Source: Valura_Partner_PnL_Dashboard.xlsx, marked finalised.
+     The blended partner earning rate is built up class by class here, exactly
+     as the Asset Mix sheet does it, and the business plan runs on the result.
+     Change a rate or a weight and the whole plan reprices.
+
+     ⚠ RECONCILIATION — the platform-fee leg below is 0.35% p.a. to the
+     partner, being 50% of a 0.70% AUM fee, per Schedule A of the Introducing
+     Broker Agreement v5. The published client Schedule of Fees & Charges v3.0
+     (effective 5 August 2026) charges clients 0.30% p.a. and exempts GIFT City
+     and external funds. One of those two documents has to move. See
+     DECISIONS.md — this is the same defect flagged against the v1.0 paper,
+     now carried into v5 and into this model.
+     ====================================================================== */
+  assetMix: {
+    source: 'Valura_Partner_PnL_Dashboard.xlsx · Asset Mix sheet',
+    /* platform / brokerage / placement / trail are PARTNER-SIDE rates p.a.
+       brokerage is per trade and multiplied by annual rotation.            */
+    classes: [
+      { key: 'EQ',     label: 'Equity & ETF',        weight: 0.45, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0,      trail: 0,
+        note: 'Platform fee plus brokerage on rotation.' },
+      { key: 'BOND',   label: 'Bonds',               weight: 0.10, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0,      trail: 0,
+        note: '' },
+      { key: 'SN',     label: 'Structured Notes',    weight: 0.15, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0.0075, trail: 0,
+        note: 'Placement is one-time on deployment; shown p.a. per the base-case convention.' },
+      { key: 'MF',     label: 'Mutual Funds',        weight: 0.20, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0,      trail: 0.005,
+        note: 'Trail from the AMC on distributed funds.' },
+      { key: 'PREIPO', label: 'Pre-IPO',             weight: 0.05, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0.02,   trail: 0,
+        note: 'Placement one-time; the p.a. convention assumes the allocation redeploys about once a year.' },
+      { key: 'PMS',    label: 'Private Funds & PMS', weight: 0.05, platform: 0.0035, brokerage: 0.0006, rotation: 1.2, placement: 0.01,   trail: 0.005,
+        note: '' }
+    ],
+    /* Anchor override on the sub-partner book, p.a. — Revenue Share Model. */
+    anchorOverrideRate: 0.001769
+  },
+
+  /* The partner's own cost base, and what Valura funds against each line.
+     `escalates` lines step up by the inflation escalator at months 13 and 25. */
+  budget: {
+    escalator: 0.08,
+    lines: [
+      { label: 'Office rent / desk',                    monthly: 25000, coFund: 0,    escalates: true,  note: 'Client-meeting capable space.' },
+      { label: 'Relationship manager — salary & incentive', monthly: 80000, coFund: 0, escalates: false, note: 'One RM to start; add a line per hire.' },
+      { label: 'Support / operations staff',            monthly: 25000, coFund: 0,    escalates: true,  note: 'Onboarding, KYC chasing, servicing.' },
+      { label: 'Digital marketing & paid ads',          monthly: 30000, coFund: 0.25, escalates: false, note: 'Meta, Google, LinkedIn.' },
+      { label: 'Print & collateral',                    monthly: 5000,  coFund: 0.30, escalates: false, note: 'Printed from central artwork.' },
+      { label: 'Events & round tables',                 monthly: 25000, coFund: 0.30, escalates: false, note: 'Valura co-sponsors and sends a speaker.' },
+      { label: 'Travel & client meetings',              monthly: 10000, coFund: 0,    escalates: true,  note: '' },
+      { label: 'Tech — CRM, telephony, tools',          monthly: 6000,  coFund: 0,    escalates: true,  note: 'Your own CRM and phones. The Valura platform itself is not charged to you.' },
+      { label: 'Webinar / Zoom subscription',           monthly: 4000,  coFund: 1.00, escalates: false, note: 'Shared central subscription — funded in full by Valura.' },
+      { label: 'Contingency & miscellaneous',           monthly: 8000,  coFund: 0,    escalates: false, note: '' }
+    ],
+    /* Funded by Valura on top of the line-level co-marketing above. */
+    centralPool: [
+      { label: 'Event sponsorship pool',            annual: 100000, note: 'Drawn against approved partner events through the year.' },
+      { label: 'Creative & campaign pack',          annual: 60000,  note: 'Central artwork, videos, launch posts — built once, issued to every partner.' },
+      { label: 'Training delivery & certification', annual: 50000,  note: 'Trainer time, exams, certificates.' }
+    ],
+    secondRm: { triggerClients: 80, triggerAumInr: 400000000, monthlyInr: 60000 }
+  },
+
+  /* =========================================================================
+     WHAT VALURA BEARS — the costs that never reach the partner's P&L.
+     These are real and material, and a partner reading only their own cost
+     sheet will not see them. Schedule A of the Introducing Broker Agreement
+     already waives the first three; the rest is infrastructure Valura runs.
+     ====================================================================== */
+  valuraBorne: [
+    { item: 'Platform access',               basis: 'Listed, waived',            listedInr: null, note: 'Access to every permitted asset class. Schedule A, Part A.' },
+    { item: 'Market data',                   basis: 'USD 1,000 p.a., waived',    listedInr: 88000, note: 'Live global market data across permitted venues. Schedule A, Part A.' },
+    { item: 'Client-driven events',          basis: 'USD 2 per client, waived',  listedInr: 176,   note: 'DTC movements, voluntary corporate actions, money movements. Per event, per client.' },
+    { item: 'Co-branded email identities',   basis: 'Provisioned and hosted',    listedInr: 12000, note: 'One mailbox per named person, created and administered by Valura. DNS and MX managed centrally.' },
+    { item: 'Co-branded microsite',          basis: 'Built and hosted',          listedInr: 60000, note: 'partner.valura.ai/<slug>, with the partner code baked into every client link.' },
+    { item: 'Partner portal and dashboard',  basis: 'Included',                  listedInr: 90000, note: 'Clients, AUM and earnings visibility. A contractual obligation under the agreement, not an extra.' },
+    { item: 'Onboarding, KYC and AML',       basis: 'Borne by Valura',           listedInr: 45000, note: 'Valura is the regulated entity and performs KYC/CDD, screening, monitoring and reporting as principal.' },
+    { item: 'Collateral generation',         basis: 'Central artwork',           listedInr: 60000, note: 'Brochure, one-pagers, decks, social kit, signatures — generated per partner, not designed per partner.' },
+    { item: 'Training, exam and certification', basis: 'Central pool',           listedInr: 50000, note: 'Nine modules, scored exam, certificate and recertification.' },
+    { item: 'Webinar platform',              basis: 'Funded in full',            listedInr: 48000, note: 'Shared central subscription. Appears on the partner budget at 100% co-funded.' },
+    { item: 'Event sponsorship pool',        basis: 'Central pool',              listedInr: 100000, note: 'Drawn against approved partner events.' },
+    { item: 'Statements, reporting and settlement', basis: 'Included',           listedInr: 36000, note: 'Quarterly statements, tax documentation and USD settlement.' }
+  ],
+
+  /* Three commitment levels, from the Three Cases sheet. */
+  cases: {
+    LOW:    { label: 'Low — test the water', grossMonthlyInr: 100000, coFundPct: 0.08,  clientsPerMonth: 3,  avgTicketInr: 2000000, migratedBookInr: 15000000,  rampMonths: 6,
+              note: 'Solo operator, shared desk.' },
+    MEDIUM: { label: 'Medium — commit',      grossMonthlyInr: 218000, coFundPct: 0.094, clientsPerMonth: 5,  avgTicketInr: 3000000, migratedBookInr: 50000000,  rampMonths: 6,
+              note: 'One RM plus an office. This is the base plan.' },
+    HIGH:   { label: 'High — scale',         grossMonthlyInr: 450000, coFundPct: 0.10,  clientsPerMonth: 10, avgTicketInr: 4000000, migratedBookInr: 100000000, rampMonths: 6,
+              note: 'Two RMs, bigger office, double the events.' }
+  },
+
+  /* Defaults for a new plan, from the Setup sheet. */
+  planDefaults: {
+    clientsPerMonth: 5, rampMonths: 6, avgTicketInr: 3000000, migratedBookInr: 50000000,
+    retention: 0.90, aumGrowth: 0.30, horizonMonths: 36,
+    subPartnerAumPerMonthInr: 2000000,
+    dayOne: { officeDepositMonths: 6, capexInr: 300000, licensingInr: 50000 }
+  },
+
+  /* =========================================================================
+     Introducing Broker Agreement v5 — the bracketed terms, in one place.
+     ====================================================================== */
+  ibTerms: {
+    version: 'Introducing Broker Agreement v6',
+    effective: '11 August 2026',
+    firstLineTransferDays: 2,
+    complaintForwardDays: 3,
+    recordYears: 8,
+    changeNoticeDays: 15,
+    additionalInfoHours: 24,
+    additionalInfoDays: 3,
+    nonCircumventionMonths: 12,
+    statementBusinessDay: 20,
+    paymentDays: 30,
+    disputeNoticeDays: 30,
+    disputeResolveDays: 60,
+    terminationNoticeDays: 90,
+    cureDays: 30,
+    changeOfControlNoticeDays: 30,
+    liabilityCapMonths: 12,
+    confidentialitySurvivalYears: 2,
+    indemnitySurvivalYears: 5,
+    forceMajeureNoticeDays: 5,
+    forceMajeureTerminationDays: 60,
+    noticeChangeDays: 30,
+    /* Schedule A, Part A */
+    shareable: [
+      { item: 'Brokerage — Equities & ETFs', basis: '12 bps (shareable)', partner: 0.50, valura: 0.50, note: 'Shareable brokerage between Valura and the Introducing Broker, computed on settlement value.' },
+      { item: 'AUM fee',                     basis: '0.70% p.a.',         partner: 0.50, valura: 0.50, note: 'Charged on AUM of referred Clients.' },
+      { item: 'Other financial products',    basis: 'As per actuals',     partner: 0.50, valura: 0.50, note: 'Structured products, pre-IPO, mutual funds and bonds.' },
+      { item: 'Float income',                basis: '—',                  partner: 0.80, valura: 0.20, note: 'Applicable when float income is announced by Valura.' },
+      { item: 'Platform access',             basis: 'Waived',             partner: null, valura: null, note: 'Access to permitted asset classes.' },
+      { item: 'Client-driven events',        basis: 'USD 2 per client — waived', partner: null, valura: null, note: 'DTC movements, voluntary corporate actions, money movements.' },
+      { item: 'Market data',                 basis: 'USD 1,000 — waived', partner: null, valura: null, note: 'Market data fee waived.' }
+    ],
+    passThrough: [
+      { cost: 'CAT fees',              rate: '0.000022 × qty',  note: 'Per buy/sell quantity.' },
+      { cost: 'FINRA transaction fees', rate: '0.000166 × qty', note: 'Per sale quantity.' },
+      { cost: 'IFSCA turnover fees',   rate: '0.00005 × volume', note: 'Per trade volume.' },
+      { cost: 'IGST (Indian residents)', rate: '18%',           note: 'On brokerage value, where applicable.' }
+    ],
+    /* Schedule A, Part B — the cascade. Each row totals 100%. */
+    cascade: [
+      { scenario: 'Case 1 — Anchor direct', sourcedBy: 'Anchor Partner (own business)',            level2: null, subDist: null, anchor: 0.50, valura: 0.50,
+        derivation: '50% of the Shareable Fee, paid directly.' },
+      { scenario: 'Case 2 — Sub-Distributor', sourcedBy: 'Sub-Distributor appointed by the Anchor', level2: null, subDist: 0.50, anchor: 0.10, valura: 0.40,
+        derivation: "20% of Valura's residual 50% = 10% of the Shareable Fee." },
+      { scenario: 'Case 3 — Level 2', sourcedBy: 'Introducer appointed by the Sub-Distributor',     level2: 0.45, subDist: 0.10, anchor: 0.05, valura: 0.40,
+        derivation: "5% of the Shareable Fee, after the Sub-Distributor's 10% override." }
+    ]
+  },
+
   /* -- Operating constants ------------------------------------------------ */
   ops: {
     fxUsdInr: 83,
@@ -214,7 +418,7 @@ VLR.CONFIG = {
     COMPLIANCE: { label: 'Compliance',             name: 'Parthiban / Deepti' },
     DESIGN:     { label: 'Design',                 name: 'Rupesh' },
     TECH:       { label: 'Technology',             name: 'Nithesh' },
-    CONTENT:    { label: 'Content & training',     name: 'Karmesh / Chinmay' },
+    CONTENT:    { label: 'Content & training',     name: 'Karmesh' },
     FINANCE:    { label: 'Economics & finance',    name: 'Aaryan' }
   },
 

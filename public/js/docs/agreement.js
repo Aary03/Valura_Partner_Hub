@@ -57,7 +57,8 @@ VLR.ESIGN = {
 
 /* The dedicated execution sheet. Fixed height, nothing above it that can
    reflow, so the boxes below sit exactly where VLR.ESIGN says they do.      */
-VLR.Doc.executionSheet = function (p) {
+VLR.Doc.executionSheet = function (p, opts) {
+  const o = opts || {};
   const d = VLR.derive(p);
   const C = VLR.CONFIG;
   const isAnchor = d.isAnchor;
@@ -79,10 +80,10 @@ VLR.Doc.executionSheet = function (p) {
   return `
   <section class="pg a4" style="height:${E.page.h}px;min-height:${E.page.h}px;position:relative;overflow:hidden">
     ${VLR.Doc.band(p, {
-      label: 'Execution', cobrand: false,
-      title: `Signed, and <em>one instrument</em>.`,
-      stand: `This page is executed as part of, and forms one instrument with, the ${C.ops.templateVersion} dated ${VLR.fmt.date(p.effectiveDate)} between ${VLR.fmt.esc(d.ent.legalName)} and ${VLR.fmt.esc(p.legalName || d.displayName)}, together with Schedule A${isAnchor ? ', Schedule B' : ''}, Schedule C and Schedule D, each of which forms part of that Agreement.`,
-      meta: [
+      label: o.label || 'Execution', cobrand: false,
+      title: o.title || `Signed, and <em>one instrument</em>.`,
+      stand: o.recital || `This page is executed as part of, and forms one instrument with, the ${C.ops.templateVersion} dated ${VLR.fmt.date(p.effectiveDate)} between ${VLR.fmt.esc(d.ent.legalName)} and ${VLR.fmt.esc(p.legalName || d.displayName)}, together with Schedule A${isAnchor ? ', Schedule B' : ''}, Schedule C and Schedule D, each of which forms part of that Agreement.`,
+      meta: o.meta || [
         ['Effective date', VLR.fmt.date(p.effectiveDate)],
         ['Tier', d.t.label],
         ['Entity', d.ent.short],
@@ -107,9 +108,9 @@ VLR.Doc.executionSheet = function (p) {
     ${E.fields.map(box).join('')}
 
     <div style="position:absolute;left:54px;right:54px;top:1006px">
-      <div class="callout" style="margin:0">Executed electronically through Zoho Sign. The audit trail issued with the executed copy — signer identity, timestamps and IP — forms part of the record and is retained against the partner record in the Hub. Counterparts and electronic signature are permitted under Clause 17.6.</div>
+      <div class="callout" style="margin:0">Executed electronically through Zoho Sign. The audit trail issued with the executed copy — signer identity, timestamps and IP — forms part of the record and is retained against the partner record in the Hub. Counterparts and electronic signature are permitted under ${VLR.fmt.esc(o.esignClause || 'Clause 17.6')}.</div>
     </div>
-    ${VLR.Doc.foot(p, d.ent.legalName + ' · ' + d.ent.licence, 'Execution page · ' + C.ops.templateVersion)}
+    ${VLR.Doc.foot(p, d.ent.legalName + ' · ' + d.ent.licence, 'Execution page · ' + (o.footer || C.ops.templateVersion))}
   </section>`;
 };
 

@@ -177,11 +177,11 @@ VLR.Doc.emails = function (p) {
   E.push({
     code: 'E07', day: 'D+12', when: dayOf('training'), stage: '05_plan_enable',
     to: `${p.businessContact || p.signatoryName || 'Team'} <${p.businessEmail || p.signatoryEmail || 'team@partner'}>`,
-    cc: '', from: `Valura Enablement <${ops.partnersEmail}>`,
+    cc: '', from: `Karmesh — Valura Enablement <${ops.partnersEmail}>`,
     subject: `Certification is open — and it gates your launch`,
     body: `
       <h2>Nine modules, one exam, and no launch without it.</h2>
-      <p>${name(p.businessContact || p.signatoryName)}, the training modules are open in your portal. Everyone at ${who} who will speak to a client about Valura needs to complete them and pass the exam at <strong>${C.examPassMark}%</strong>.</p>
+      <p>${name(p.businessContact || p.signatoryName)}, Karmesh from our enablement team will walk your team through the modules and then leave them open in your portal to finish at your own pace. Everyone at ${who} who will speak to a client about Valura needs to complete them and pass the exam at <strong>${C.examPassMark}%</strong>.</p>
       <table class="mail-tbl">
         ${C.training.map((m, i) => `<tr><td>${String(i + 1).padStart(2, '0')}</td><td>${VLR.fmt.esc(m)}</td></tr>`).join('')}
       </table>
@@ -296,6 +296,76 @@ VLR.Doc.emails = function (p) {
   return E;
 };
 
+/* ---------------------------------------------------------------------------
+   The sendable co-branded message.
+   Mail clients ignore stylesheets, strip <style> blocks and drop data: URIs,
+   so this is built with inline styles, table layout and a hosted mark. It is
+   generated per partner, so every message carries that partner's name, mark
+   and colour without anyone designing one.
+   ------------------------------------------------------------------------ */
+VLR.Doc.emailHtml = function (p, e) {
+  const d = VLR.derive(p);
+  const C = VLR.CONFIG;
+  const ink = '#10221C', paper = '#F7F6F3', brand = '#02A24B', rule = '#DEDBD4';
+  const body = '#37473F', faint = '#9AA6A0';
+  const accent = p.secondaryHex || brand;
+  const sans = "'Schibsted Grotesk',-apple-system,'Segoe UI',Helvetica,Arial,sans-serif";
+  const serif = "'Instrument Serif','Iowan Old Style',Georgia,serif";
+  const mono = "'IBM Plex Mono',ui-monospace,Menlo,monospace";
+  const abs = u => u && !/^https?:/i.test(u) ? (location.origin + '/' + String(u).replace(/^\//, '')) : u;
+
+  const partnerMark = p.logoDarkUrl || p.logoLightUrl;
+  const lockup = `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="vertical-align:middle;padding-right:9px">
+        <img src="${abs(VLR.Doc.MARK_WHITE)}" width="18" height="18" alt="Valura" style="display:block;border:0">
+      </td>
+      <td style="vertical-align:middle;font-family:${mono};font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#ffffff;font-weight:600">Valura</td>
+      <td style="vertical-align:middle;padding:0 12px"><div style="width:1px;height:20px;background:rgba(255,255,255,.24)"></div></td>
+      <td style="vertical-align:middle">
+        ${partnerMark
+          ? `<img src="${VLR.fmt.esc(partnerMark)}" alt="${VLR.fmt.esc(d.displayName)}" style="display:block;border:0;max-height:22px;max-width:120px">`
+          : `<span style="font-family:${mono};font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#ffffff;font-weight:600">${VLR.fmt.esc(d.displayName)}</span>`}
+      </td>
+    </tr></table>`;
+
+  /* The generated body uses Hub classes; convert the few that matter. */
+  const inlined = String(e.body)
+    .replace(/<h2>/g, `<h2 style="font-family:${serif};font-weight:400;font-size:25px;line-height:1.1;letter-spacing:-.02em;color:${ink};margin:0 0 14px">`)
+    .replace(/<p>/g, `<p style="margin:0 0 13px;font-family:${sans};font-size:14px;line-height:1.62;color:${body}">`)
+    .replace(/<ul>/g, `<ul style="margin:0 0 13px;padding-left:20px;font-family:${sans};font-size:14px;line-height:1.62;color:${body}">`)
+    .replace(/<li>/g, `<li style="margin-bottom:6px">`)
+    .replace(/<strong>/g, `<strong style="color:${ink};font-weight:600">`)
+    .replace(/class="mail-cta" href="#"/g,
+      `href="${'https://' + d.micrositeUrl}" style="display:inline-block;background:${brand};color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-family:${mono};font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin:6px 0 14px"`)
+    .replace(/class="mail-tbl"/g,
+      `cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;font-family:${sans};font-size:12.5px;margin:4px 0 16px"`)
+    .replace(/<td>/g, `<td style="padding:8px 0;border-bottom:1px solid ${rule};vertical-align:top;color:${body}">`);
+
+  return `<div style="margin:0;padding:0;background:${paper}">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${paper};padding:24px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="620" cellpadding="0" cellspacing="0" border="0" style="width:620px;max-width:100%;background:#ffffff;border:1px solid ${rule};border-radius:8px;overflow:hidden">
+          <tr><td style="background:${ink};padding:22px 30px">${lockup}</td></tr>
+          <tr><td style="height:3px;background:${accent};font-size:0;line-height:0">&nbsp;</td></tr>
+          <tr><td style="padding:28px 30px 22px">${inlined}</td></tr>
+          <tr><td style="padding:16px 30px 24px;border-top:1px solid ${rule};background:${paper}">
+            <div style="font-family:${mono};font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:${faint};margin-bottom:8px">
+              ${e.cobrand ? 'Co-branded · client-facing' : 'Partner-facing'} · ${VLR.fmt.esc(e.code)}
+            </div>
+            <div style="font-family:${sans};font-size:10.5px;line-height:1.6;color:${faint}">
+              ${VLR.fmt.esc(d.ent.legalName)} · ${VLR.fmt.esc(d.ent.licence)}<br>
+              ${VLR.fmt.esc(d.ent.address)}<br><br>
+              Investments are subject to market risk. This message is not investment advice and no assessment is made of whether anything suits you.
+              ${e.cobrand ? VLR.fmt.esc(d.displayName) + ' is an introducing partner of Valura and is remunerated for introductions. What it earns is set out in your onboarding pack before you open an account, and it does not increase what you pay.' : ''}
+            </div>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </div>`;
+};
+
 /* Derive a co-branded address for a person from the partner's format. */
 VLR.Doc.emailFor = function (p, person) {
   if (!person || !person.name) return '';
@@ -306,8 +376,13 @@ VLR.Doc.emailFor = function (p, person) {
 };
 
 /* Render one email as a card. */
-VLR.Doc.emailCard = function (p, e) {
+VLR.Doc.emailCard = function (p, e, opts) {
+  const o = opts || {};
   const d = VLR.derive(p);
+  /* `forSend` produces the message body only — no preview chrome, inline
+     styles so it survives a mail client, and the hosted mark rather than the
+     embedded one. */
+  if (o.forSend) return VLR.Doc.emailHtml(p, e);
   return `
   <article class="mail">
     <div class="mail-hdr">
