@@ -37,7 +37,11 @@ export function fail(res, err) {
 
 export function originOf(req) {
   if (process.env.HUB_ORIGIN) return process.env.HUB_ORIGIN.replace(/\/$/, '');
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const proto = req.headers['x-forwarded-proto'] || (host || '').startsWith('localhost') ? 'http' : 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+  /* Parenthesised deliberately: `a || b ? c : d` binds as `(a || b) ? c : d`,
+     which on Vercel — where x-forwarded-proto is always present — resolved
+     every origin to http:// and sent the renderer through a redirect. */
+  const proto = req.headers['x-forwarded-proto'] ||
+    (host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https');
   return `${proto}://${host}`;
 }
