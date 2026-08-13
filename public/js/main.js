@@ -936,19 +936,46 @@ VLR.App = (function () {
               Sent ${VLR.fmt.date(e.sentAt)} · request <span class="mono">${VLR.fmt.esc(e.requestId)}</span>
               ${e.status ? ` · status <b>${VLR.fmt.esc(e.status)}</b>` : ''}
             </p>
-            ${(e.actions || e.recipients || []).length ? `
+            ${(() => {
+              const rows = e.actions || e.recipients || [];
+              if (!rows.length) return '';
+              /* Zoho's own words are opaque at a glance — NOACTION reads like a
+                 failure when it means the opposite. Say what is true instead. */
+              const plain = s => ({
+                SIGNED:    ['go',   'Signed'],
+                VIEWED:    ['warn', 'Opened, not yet signed'],
+                UNOPENED:  ['warn', 'Emailed — not opened yet'],
+                NOACTION:  ['',     'Not emailed yet — waiting their turn'],
+                DECLINED:  ['stop', 'Declined'],
+                RECALLED:  ['stop', 'Recalled']
+              }[s] || ['', s || 'Sent']);
+              const waiting = rows.find(a => a.status === 'UNOPENED' || a.status === 'VIEWED');
+              const notYet = rows.filter(a => a.status === 'NOACTION');
+              return `
               <table class="t" style="margin-top:12px">
-                <thead><tr><th>Recipient</th><th>Email</th><th>Order</th><th>State</th></tr></thead>
-                <tbody>${(e.actions || e.recipients).map(a => `<tr>
-                  <td>${VLR.fmt.esc(a.name || a.role || '')}</td>
-                  <td class="mono" style="font-size:11.5px">${VLR.fmt.esc(a.email || '')}</td>
-                  <td class="num">${a.order != null ? a.order + 1 : '—'}</td>
-                  <td>${VLR.fmt.esc(a.status || 'sent')}</td></tr>`).join('')}</tbody>
-              </table>` : ''}
+                <thead><tr><th>Order</th><th>Recipient</th><th>Email</th><th>Where it is</th></tr></thead>
+                <tbody>${rows.map(a => {
+                  const [cls, label] = plain(a.status);
+                  return `<tr>
+                    <td class="num">${a.order != null ? a.order + 1 : '—'}</td>
+                    <td>${VLR.fmt.esc(a.name || a.role || '')}</td>
+                    <td class="mono" style="font-size:11.5px">${VLR.fmt.esc(a.email || '')}</td>
+                    <td><span class="chip ${cls}">${VLR.fmt.esc(label)}</span></td></tr>`;
+                }).join('')}</tbody>
+              </table>
+              ${waiting && notYet.length ? `<div class="banner warn" style="margin:14px 0 0"><div>
+                <b>Signing is sequential, so only one person has been emailed.</b>
+                It is with <b>${VLR.fmt.esc(waiting.email)}</b> now.
+                ${VLR.fmt.esc(notYet.map(a => a.email).join(' and '))}
+                ${notYet.length > 1 ? 'have' : 'has'} not been emailed at all yet and will not be until that signature lands —
+                so there is nothing missing from ${notYet.length > 1 ? 'those inboxes' : 'that inbox'}.
+                Zoho sends from a <span class="mono">@zohosign.com</span> address, not from valura.ai, so check spam.</div></div>` : ''}`;
+            })()}
           </div>
           <div style="display:flex;flex-direction:column;gap:8px;min-width:190px">
             <button class="btn sm" data-act="esign-refresh">Refresh status</button>
-            ${done ? `<button class="btn sm p" data-act="esign-download">Download executed</button>` : ''}
+            ${done ? `<button class="btn sm p" data-act="esign-download">Download executed</button>`
+                   : `<button class="btn sm" data-act="esign-remind">Resend the email</button>`}
             <button class="btn sm ghost" data-act="esign-clear">Detach from this record</button>
           </div>
         </div>
@@ -1428,6 +1455,16 @@ VLR.App = (function () {
             VLR.Store.audit(p, 'Agreement fully executed', p.esign.requestId);
           }
           VLR.Store.save(); render(); toast('Status: ' + r.status);
+        }).catch(err => alert(err.message));
+        break;
+
+      case 'esign-remind':
+        toast('Reminding…');
+        VLR.Api.remindSignature(p.esign.requestId).then(r => {
+          const who = (r.waitingOn || []).map(a => a.email).join(', ');
+          VLR.Store.audit(p, 'Signature reminder sent', who);
+          VLR.Store.save();
+          alert(`Zoho has re-sent the signature email${who ? ' to ' + who : ''}.\n\nIt only ever emails whoever's turn it is — a later signer cannot be chased before the one ahead of them has signed.`);
         }).catch(err => alert(err.message));
         break;
 

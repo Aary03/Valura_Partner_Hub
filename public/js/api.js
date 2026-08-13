@@ -78,6 +78,7 @@ VLR.Api = (function () {
     health: () => call('/api/health'),
     sendForSignature: payload => call('/api/sign/send', { method: 'POST', json: payload }),
     signatureStatus: requestId => call(`/api/sign/status?requestId=${encodeURIComponent(requestId)}`),
+    remindSignature: requestId => call('/api/sign/remind', { method: 'POST', json: { requestId } }),
     downloadExecuted: requestId => call(`/api/sign/download?requestId=${encodeURIComponent(requestId)}`, { raw: true }),
     sendEmail: payload => call('/api/email/send', { method: 'POST', json: payload }),
     pdf: payload => call('/api/pdf', { method: 'POST', json: payload, raw: true })
