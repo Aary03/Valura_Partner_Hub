@@ -112,9 +112,21 @@ export async function renderPdf({ origin, partner, doc, opts }) {
   const browser = await launch();
   const page = await browser.newPage();
   try {
+    /* Never render from cache. A warm container holds Chromium's disk cache
+       between invocations, so after a redeploy it would happily serve the
+       previous print.html and the previous economics — producing a document
+       from code that is no longer live, with nothing to show it had. That is
+       a worse failure than a slow render, because it is silent.
+       Turning the cache off also stops the 304 that surfaced this.          */
+    await page.setCacheEnabled(false);
+
     const url = `${origin}/print.html`;
     const res = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25_000 });
-    if (!res || !res.ok()) throw new HubError(502, `Could not load the print surface at ${url} (HTTP ${res ? res.status() : 'no response'}).`);
+    /* 2xx and 3xx both mean the page is there. Only 4xx/5xx is a failure. */
+    if (!res) throw new HubError(502, `No response from the print surface at ${url}.`);
+    if (res.status() >= 400) {
+      throw new HubError(502, `Could not load the print surface at ${url} (HTTP ${res.status()}).`);
+    }
 
     await page.waitForFunction('window.VLRPrint && window.VLRPrint.ready === true', { timeout: 15_000 });
 
