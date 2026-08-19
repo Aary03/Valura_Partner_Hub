@@ -205,24 +205,29 @@ Charges v3.0. Two of them interact with this system directly:
 
 ---
 
-## 10 · Client platform fee — **two published documents disagree, needs Val**
+## 10 · Client platform fee — **RESOLVED, 13 August 2026**
 
-`CONFIG.pricing.platform` and the published Schedule of Fees & Charges v4.1.
+The partner pricing model previously implied the client paid **47 bps** a year
+while the published Schedule of Fees & Charges told them **0.35%**. That is now
+closed, and closed the right way round.
 
-- The partner pricing model treats **35 bps as Valura's cost**, adds 6 bps that
-  Valura keeps and 6 bps for the partner at a 50% split, so **the client pays
-  47 bps a year**.
-- The published **Schedule of Fees & Charges v4.1**, effective 5 August 2026,
-  tells clients the platform fee is **0.35% per year**.
+In `Valura_Partner_Pricing_Revenue_Share.xlsx` the platform fee carries a
+**0% partner split**: cost 30 bps, Valura keeps 5, client pays **35 bps** — the
+published 0.35% p.a. exactly. The fee is simply not revenue-shared. Nothing in
+the client-facing schedule had to move.
 
-Those cannot both be true. Either the client schedule is understating the fee by
-12 bps, or the pricing model has mislabelled the client price as a cost. This is
-the same class of defect flagged against the v1.0 partner paper, and it is the
-one number a client can check for themselves.
+Every other default reconciles too: equity 22 bps, other brokerage 20 bps,
+pre-IPO 400 bps. A partner priced at the defaults costs their clients exactly
+what the published schedule says.
 
-Nothing in the Hub resolves it. The pricing tab, Schedule A and the P&L all run
-on the pricing model; the client-facing disclosure quotes it. **Neither should
-go in front of a client until one of the two documents moves.**
+**What remains a decision, not a defect:** the Hub allows any split to be raised
+above its default, and doing so raises the client above the published schedule.
+That is a real mark-up and the sheet says so — it requires written agreement
+with Valura and disclosure to the client before the account is opened. The Hub
+flags it on the pricing tab, on the pricing sheet and in Schedule A, but it
+does not prevent it. Whether an operator should be able to price above the
+published schedule without a second approval is worth deciding before this is
+in more than a few hands.
 
 ## 11 · Brokerage in the client schedule vs the partner model
 
