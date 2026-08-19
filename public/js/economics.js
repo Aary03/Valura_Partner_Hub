@@ -253,7 +253,12 @@ VLR.Econ = (function () {
      place moves every one of them together.
      ==================================================================== */
   function priceLine(line, split) {
-    const s = split == null ? C().pricing.defaultSplit : Number(split);
+    /* Each product carries its own default. The platform fee's is 0% — it is
+       deliberately not revenue-shared, which is what keeps the client at the
+       published 0.35% p.a. Falling back to the global 50% here would quietly
+       mark every client up by 5 bps. */
+    const fallback = line.defaultSplit != null ? line.defaultSplit : C().pricing.defaultSplit;
+    const s = split == null ? fallback : Number(split);
     /* A 100% split would divide by zero — and would mean Valura marks up
        infinitely for the partner's benefit, which is not a thing. */
     const safe = Math.min(Math.max(s, 0), 0.95);
@@ -264,9 +269,15 @@ VLR.Econ = (function () {
       ...line, split: safe, partnerEarnsBps: partnerEarns,
       shareableBps: shareable, clientPaysBps: clientPays,
       partnerShareOfShareable: shareable ? partnerEarns / shareable : 0,
-      /* What the client pays at the default split, to show the mark-up. */
-      baselineClientPaysBps: line.costBps + line.valuraKeepsBps * 2,
-      markupOverBaselineBps: clientPays - (line.costBps + line.valuraKeepsBps * 2)
+      /* The published price is what the client pays at this product's own
+         default split. Anything above it is a mark-up beyond the Schedule of
+         Fees & Charges, and needs written agreement plus client disclosure. */
+      defaultSplitForLine: fallback,
+      baselineClientPaysBps: (() => {
+        const b = fallback === 0 ? 0 : line.valuraKeepsBps * fallback / (1 - fallback);
+        return line.costBps + line.valuraKeepsBps + b;
+      })(),
+      get markupOverBaselineBps() { return this.clientPaysBps - this.baselineClientPaysBps; }
     };
   }
 
@@ -274,7 +285,9 @@ VLR.Econ = (function () {
   function pricingFor(partner) {
     const P = C().pricing;
     const splits = (partner && partner.splits) || {};
-    const get = k => splits[k] != null ? splits[k] : P.defaultSplit;
+    /* undefined, not the global default — priceLine falls back to the
+       product's own default, which for the platform fee is zero. */
+    const get = k => (splits[k] != null ? splits[k] : undefined);
     return {
       brokerage: P.brokerage.map(l => priceLine(l, get(l.key))),
       platform: priceLine(P.platform, get(P.platform.key)),

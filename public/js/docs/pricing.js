@@ -85,17 +85,36 @@ VLR.Doc.pricingSheet = function (p) {
     </table>
     <p class="fine">${VLR.fmt.esc(pr.placement.note)} Priced per deal and disclosed to the client before they commit.</p>
 
-    <h2 class="sec"><span class="no">04</span>How the split works</h2>
+    <h2 class="sec"><span class="no">04</span>Charged to the client, not shared with you</h2>
+    <table class="dt">
+      <thead><tr><th>Charge</th><th>What the client pays</th><th>Notes</th></tr></thead>
+      <tbody>${(P.clientOnly || []).map(r => `<tr>
+        <td>${VLR.fmt.esc(r.label)}</td><td class="num" style="text-align:left">${VLR.fmt.esc(r.charge)}</td>
+        <td>${VLR.fmt.esc(r.note)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+
+    <h2 class="sec"><span class="no">05</span>Pass-through costs — at actuals, no mark-up</h2>
+    <table class="dt">
+      <thead><tr><th>Charge</th><th class="num">Rate</th><th>Charged by</th><th>Notes</th></tr></thead>
+      <tbody>${(P.passThrough || []).map(r => `<tr>
+        <td>${VLR.fmt.esc(r.charge)}</td><td class="num">${VLR.fmt.esc(r.rate)}</td>
+        <td>${VLR.fmt.esc(r.by)}</td><td>${VLR.fmt.esc(r.note)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+
+    <h2 class="sec"><span class="no">06</span>How to read this sheet</h2>
     <div class="callout"><b>Your earning is Valura's retained margin, marked up by your split.</b>
-      At ${VLR.fmt.pct(P.defaultSplit, 0)} you earn exactly what Valura keeps. Above that, the excess is
-      added to what the client pays — it does not come out of Valura's margin, and it does not come out
-      of anyone else's. The arithmetic is
+      ${VLR.fmt.esc(P.howToRead)} The arithmetic is
       <span class="mono">you earn = Valura keeps × split ÷ (1 − split)</span>.</div>
 
-    ${totalMarkup > 0.01 ? `<div class="callout warn"><b>This partner is priced above the standard split.</b>
-      Across all products their clients pay ${bps(totalMarkup)} more than they would at
-      ${VLR.fmt.pct(P.defaultSplit, 0)}. That is a commercial decision and a disclosure obligation:
-      the amount this partner earns is stated to each client before the account is opened.</div>` : ''}
+    ${totalMarkup > 0.01
+      ? `<div class="callout stop"><b>This partner is priced above the published Schedule.</b>
+          Across all products their clients pay ${bps(totalMarkup)} more than the rates in the
+          Valura Schedule of Fees &amp; Charges. ${VLR.fmt.esc(P.markupRule)}</div>`
+      : `<div class="callout"><b>Priced at the published Schedule.</b> Every rate above is exactly what the
+          Valura Schedule of Fees &amp; Charges states — this partner's clients pay no more than any other
+          Valura client. ${VLR.fmt.esc(P.markupRule)}</div>`}
 
     <table class="dt">
       <thead><tr><th class="num">If your split were</th><th class="num">You earn on equity</th><th class="num">Client pays</th><th class="num">Valura keeps</th></tr></thead>

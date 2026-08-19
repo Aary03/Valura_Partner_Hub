@@ -32,10 +32,10 @@ VLR.Doc.emails = function (p) {
     code: 'E01', day: 'D0', when: dayOf('d0_welcome'), stage: '03_onboard_kyb',
     to: `${p.signatoryName || 'Signatory'} <${p.signatoryEmail || 'signatory@partner'}>`,
     cc: p.businessEmail || '', from: `${owner} <${ops.partnersEmail}>`,
-    subject: `Welcome to Valura — one form, and we start the 30-day clock`,
+    subject: `Welcome to Valura — one form, and you are live in five days`,
     body: `
       <h2>Signed. Here is exactly what happens next.</h2>
-      <p>${name(p.signatoryName)}, the Partner Agreement between ${VLR.fmt.esc(d.ent.legalName)} and ${who} was executed on <strong>${VLR.fmt.date(p.effectiveDate)}</strong>. That date is Day 0, and every date below is computed from it.</p>
+      <p>${name(p.signatoryName)}, the Partner Agreement between ${VLR.fmt.esc(d.ent.legalName)} and ${who} was executed on <strong>${VLR.fmt.date(p.effectiveDate)}</strong>. That date is Day 0, and every date below is computed from it. Go-live is Day 5 — most of what follows runs in parallel rather than in sequence.</p>
       <p>There is one action for you today: complete the partner intake form. Everything downstream — your partner code, your microsite, your visiting cards, your collateral pack and your client onboarding documents — is generated from that single form. We do not ask for the same information twice.</p>
       <p><a class="mail-cta" href="#">Open the intake form</a></p>
       <table class="mail-tbl">
@@ -46,13 +46,13 @@ VLR.Doc.emails = function (p) {
         <tr><td>First funded ticket</td><td><strong>${dayOf('funded')}</strong></td></tr>
       </table>
       <p>Your kickoff call is <strong>${dayOf('kickoff')}</strong>. ${VLR.fmt.esc(owner)} is your named owner at Valura and will be on it, along with the escalation path in writing.</p>
-      <p>A calendar invitation for the full 30 days is attached, and a live feed is linked from your portal so it stays current if a date moves.</p>`,
+      <p>A calendar invitation for all five days is attached, and a live feed is linked from your portal so it stays current if a date moves.</p>`,
     notes: 'Attach: the activation calendar ICS, the executed agreement PDF, the KYB checklist. Send from the named owner, not a no-reply address.'
   });
 
   /* -- E02 · The email-ID and cards ask --------------------------------- */
   E.push({
-    code: 'E02', day: 'D+1', when: dayOf('email_ask'), stage: '04_identity_kit', ask: true,
+    code: 'E02', day: 'D0', when: dayOf('email_ask'), stage: '04_identity_kit', ask: true,
     to: `${p.businessContact || p.signatoryName || 'Business contact'} <${p.businessEmail || p.signatoryEmail || 'contact@partner'}>`,
     cc: p.opsEmail || '', from: `${owner} <${ops.partnersEmail}>`,
     subject: `Who needs a Valura email address and a card? — send us the list by ${dayOf('intake_due')}`,
@@ -79,12 +79,12 @@ VLR.Doc.emails = function (p) {
       : `<p>Reply to this email with the list, or add it to the People section of your intake form — either works.</p>`}
       <p>Your tier includes <strong>${d.portalSeats} portal seats</strong>. Mailboxes beyond that number are available; we will confirm the cost before creating them.</p>
       <p>Deadline is <strong>${dayOf('intake_due')}</strong>, with the intake form. Mailboxes and credentials are handed over on <strong>${dayOf('email_give')}</strong>, alongside your partner code and portal logins. Cards go to print on ${dayOf('microsite')}.</p>`,
-    notes: 'This is the "ask" email. It is in the calendar at D+1 and the answer is due with the intake form at D+3. Mailbox handover is a dated calendar item at D+5 — do not let it drift into "when we get to it".'
+    notes: 'This is the "ask" email. It is asked on the kickoff call at D0 and the answer is due with the intake form at D+1. Mailbox handover is a dated calendar item at D+2 — do not let it drift into "when we get to it".'
   });
 
   /* -- E03 · KYB reminder ------------------------------------------------ */
   E.push({
-    code: 'E03', day: 'D+2', when: dayOf('intake_due'), stage: '03_onboard_kyb',
+    code: 'E03', day: 'D+1', when: dayOf('intake_due'), stage: '03_onboard_kyb',
     to: `${p.complianceContact || p.opsContact || p.signatoryName || 'Ops'} <${p.complianceEmail || p.opsEmail || p.signatoryEmail || 'ops@partner'}>`,
     cc: '', from: `Valura Compliance <${ops.complianceEmail}>`,
     subject: `KYB pack — ${C.kybPack.filter(k => k.required).length} documents, due ${dayOf('intake_due')}`,
@@ -104,7 +104,7 @@ VLR.Doc.emails = function (p) {
   const disc = VLR.Econ.disclosure({ ...p, platformSharePct: d.platformSharePct,
     brokerageSharePct: d.brokerageSharePct, placementSharePct: d.placementSharePct });
   E.push({
-    code: 'E04', day: 'D+5', when: dayOf('code'), stage: '03_onboard_kyb',
+    code: 'E04', day: 'D+2', when: dayOf('code'), stage: '03_onboard_kyb',
     to: `${p.signatoryName || 'Signatory'} <${p.signatoryEmail || 'signatory@partner'}>`,
     cc: [p.businessEmail, p.opsEmail].filter(Boolean).join(', '),
     from: `${owner} <${ops.partnersEmail}>`,
@@ -134,7 +134,7 @@ VLR.Doc.emails = function (p) {
 
   /* -- E05 · Kit proofs -------------------------------------------------- */
   E.push({
-    code: 'E05', day: 'D+7', when: dayOf('proofs'), stage: '04_identity_kit',
+    code: 'E05', day: 'D+2', when: dayOf('microsite'), stage: '04_identity_kit',
     to: `${p.marketingContact || p.businessContact || 'Marketing'} <${p.marketingEmail || p.businessEmail || 'marketing@partner'}>`,
     cc: '', from: `Valura Design <${ops.partnersEmail}>`,
     subject: `Your co-branded pack — proofs for approval`,
@@ -155,7 +155,7 @@ VLR.Doc.emails = function (p) {
 
   /* -- E06 · Microsite live + pack delivered ------------------------------ */
   E.push({
-    code: 'E06', day: 'D+10', when: dayOf('microsite'), stage: '04_identity_kit',
+    code: 'E06', day: 'D+2', when: dayOf('microsite'), stage: '04_identity_kit',
     to: `${p.marketingContact || p.businessContact || 'Marketing'} <${p.marketingEmail || p.businessEmail || 'marketing@partner'}>`,
     cc: p.signatoryEmail || '', from: `Valura Design <${ops.partnersEmail}>`,
     subject: `${VLR.fmt.esc(d.micrositeUrl)} is live`,
@@ -175,7 +175,7 @@ VLR.Doc.emails = function (p) {
 
   /* -- E07 · Training open ------------------------------------------------ */
   E.push({
-    code: 'E07', day: 'D+12', when: dayOf('training'), stage: '05_plan_enable',
+    code: 'E07', day: 'D+2', when: dayOf('training'), stage: '05_plan_enable',
     to: `${p.businessContact || p.signatoryName || 'Team'} <${p.businessEmail || p.signatoryEmail || 'team@partner'}>`,
     cc: '', from: `Karmesh — Valura Enablement <${ops.partnersEmail}>`,
     subject: `Certification is open — and it gates your launch`,
@@ -193,7 +193,7 @@ VLR.Doc.emails = function (p) {
 
   /* -- E08 · Launch announcement — co-branded, to the partner's clients --- */
   E.push({
-    code: 'E08', day: 'D+15', when: dayOf('launch_ann'), stage: '06_launch', cobrand: true,
+    code: 'E08', day: 'D+4', when: dayOf('launch_ann'), stage: '06_launch', cobrand: true,
     to: `${who} client base — via the partner's own channel`,
     cc: '', from: `${p.signatoryName || 'Partner'} <${VLR.Doc.emailFor(p, p.people && p.people[0]) || (p.signatoryEmail || 'partner@partner')}>`,
     subject: `Global markets, now available through ${who}`,
@@ -215,7 +215,7 @@ VLR.Doc.emails = function (p) {
 
   /* -- E09 · Webinar invite ---------------------------------------------- */
   E.push({
-    code: 'E09', day: 'D+18', when: dayOf('webinar'), stage: '06_launch', cobrand: true,
+    code: 'E09', day: 'D+10', when: dayOf('webinar'), stage: '06_launch', cobrand: true,
     to: `${who} client base`, cc: '', from: `${p.signatoryName || 'Partner'} <${p.signatoryEmail || 'partner@partner'}>`,
     subject: `${dayOf('webinar')} — how global investing actually works, in 45 minutes`,
     body: `
@@ -233,12 +233,12 @@ VLR.Doc.emails = function (p) {
 
   /* -- E10 · First funded ticket ----------------------------------------- */
   E.push({
-    code: 'E10', day: 'D+30', when: dayOf('funded'), stage: '06_launch',
+    code: 'E10', day: 'D+5', when: dayOf('funded'), stage: '06_launch',
     to: `${p.signatoryName || 'Signatory'} <${p.signatoryEmail || 'signatory@partner'}>`,
     cc: p.businessEmail || '', from: `${owner} <${ops.partnersEmail}>`,
-    subject: `First funded ticket settled — 30-day review on ${dayOf('funded')}`,
+    subject: `First funded ticket settled — go-live review on ${dayOf('funded')}`,
     body: `
-      <h2>Thirty days, signature to settled.</h2>
+      <h2>Five days, signature to settled.</h2>
       <p>${name(p.signatoryName)}, your first funded ticket has settled. That closes the activation programme and opens the running relationship.</p>
       <p>At the review we will read the funnel end to end — reached, viewed, lead, KYC started, funded — and compare it against the other partners in your segment. That comparison is the useful part: it shows where your journey leaks rather than whether the number is good.</p>
       <table class="mail-tbl">

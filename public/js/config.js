@@ -68,34 +68,64 @@ VLR.CONFIG = {
      keeps; at 60% the partner earns 1.5× it and the client pays the
      difference. That is the lever, and it is per product, per partner.
 
-     ⚠ RECONCILE — at the default 50% split the platform fee lands at 47 bps to
-     the client. The published Schedule of Fees & Charges v4.1 (effective
-     5 August 2026) states 0.35% per year. 35 bps is the COST line here, not
-     the client price. One of the two documents has to move before either is
-     shown to a client. See DECISIONS.md.
+     Every default below reconciles to the published Schedule of Fees &
+     Charges v4.2: equity 22 bps, other brokerage 20 bps, platform 35 bps p.a.
+     A partner priced at the defaults costs their clients exactly what the
+     published schedule says. A mark-up takes them ABOVE it, which is why it
+     needs written agreement and client disclosure — see `markupRule`.
      ====================================================================== */
   pricing: {
-    source: 'Valura_Partner_Pricing_Revenue_Share_1.xlsx',
-    alignedTo: 'Schedule of Fees & Charges v4.1 · 5 August 2026',
+    source: 'Valura_Partner_Pricing_Revenue_Share.xlsx',
+    alignedTo: 'Schedule of Fees & Charges v4.2',
     defaultSplit: 0.50,
     /* All rates in basis points. 1 bp = 0.01%. */
     brokerage: [
-      { key: 'EQ',    label: 'Equity, ETF & listed',   costBps: 10, valuraKeepsBps: 6, canMarkUp: true },
-      { key: 'BOND',  label: 'Fixed income / bonds',   costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
-      { key: 'SN',    label: 'Structured products',    costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
-      { key: 'MF',    label: 'Global mutual funds',    costBps: 10, valuraKeepsBps: 5, canMarkUp: true },
-      { key: 'UCITS', label: 'UCITS funds',            costBps: 10, valuraKeepsBps: 5, canMarkUp: true }
+      { key: 'EQ',    label: 'Equity, ETF & listed',  costBps: 10, valuraKeepsBps: 6, canMarkUp: true, defaultSplit: 0.50,
+        note: 'Client pays 0.22% per trade, min $1. Matches the published Schedule.' },
+      { key: 'BOND',  label: 'Bonds & fixed income',  costBps: 10, valuraKeepsBps: 5, canMarkUp: true, defaultSplit: 0.50,
+        note: 'Client pays 0.20% per trade.' },
+      { key: 'MF',    label: 'Global mutual funds',   costBps: 10, valuraKeepsBps: 5, canMarkUp: true, defaultSplit: 0.50,
+        note: 'Client pays 0.20% per transaction.' },
+      { key: 'UCITS', label: 'UCITS funds',           costBps: 10, valuraKeepsBps: 5, canMarkUp: true, defaultSplit: 0.50,
+        note: 'Client pays 0.20% per transaction.' },
+      { key: 'SN',    label: 'Structured products',   costBps: 10, valuraKeepsBps: 5, canMarkUp: true, defaultSplit: 0.50,
+        note: 'Client pays 0.20% per trade.' }
     ],
+    /* The platform fee is NOT revenue-shared by default. Cost 30, Valura
+       keeps 5, client pays 35 — which is the published 0.35% p.a. exactly.
+       A split above zero marks the client up beyond the published schedule. */
     platform: {
       key: 'PLATFORM', label: 'Platform fee — all held assets',
-      costBps: 35, valuraKeepsBps: 6, canMarkUp: true, per: 'year',
-      note: '35 bps is our cost. The mark-up is split with you; raise your share and the client pays more, our 6 bps stays.'
+      costBps: 30, valuraKeepsBps: 5, canMarkUp: true, per: 'year', defaultSplit: 0,
+      note: 'Cost 0.30%, Valura keeps 0.05%. The split is 0%, so this fee is not revenue-shared and the client pays 0.35% p.a., matching the published Schedule. Raising the split marks the client up.'
     },
     placement: {
       key: 'PREIPO', label: 'Pre-IPO & private markets',
-      costBps: 100, valuraKeepsBps: 150, canMarkUp: true, per: 'deal',
-      note: 'Cost 100 bps, our 150 bps fixed. Raise your share and the client pays more.'
+      costBps: 100, valuraKeepsBps: 150, canMarkUp: true, per: 'deal', defaultSplit: 0.50,
+      note: 'Indicative default only. The published Schedule prices pre-IPO per deal and discloses it to the client before they commit.'
     },
+    /* Charged to the client, never shared with the partner. */
+    clientOnly: [
+      { label: 'Custody — exchange-listed stocks, ETFs and UCITS funds', charge: 'Nil', note: '' },
+      { label: 'Custody — all other products', charge: '0.20% per year',
+        note: 'Global mutual funds, structured products, pre-IPO and other unlisted holdings. Charged by the custodian, calculated daily, debited quarterly.' },
+      { label: 'Deposits', charge: '$0', note: '' },
+      { label: 'Withdrawals', charge: 'One free per calendar month, then $5 each', note: 'Resets on the 1st.' },
+      { label: 'Transferring securities out', charge: 'At actuals', note: '' },
+      { label: 'Closing the account', charge: 'At actuals', note: '' }
+    ],
+    /* Levied by third parties, passed through at actuals with no mark-up. */
+    passThrough: [
+      { charge: 'IFSCA global access turnover fee', rate: '0.005% of turnover', by: 'IFSCA', note: '' },
+      { charge: 'FINRA Transaction Fee', rate: '$0.000166 per share sold', by: 'FINRA (US)', note: 'Per-share fee on sales, subject to the applicable FINRA cap.' },
+      { charge: 'CAT (Consolidated Audit Trail) fees', rate: '$0.000022 per share', by: 'US regulators', note: 'Per-share, buy and sell.' },
+      { charge: 'SEC Section 31 fee', rate: 'At actuals on sales', by: 'SEC (US)', note: '' },
+      { charge: 'IGST on brokerage', rate: '18%', by: 'Government of India', note: 'Indian resident clients.' },
+      { charge: 'Exchange, clearing and settlement', rate: 'At actuals', by: 'Venues and clearing houses', note: '' },
+      { charge: 'Bank and payment charges', rate: 'At actuals', by: 'Banks and GlomoPay', note: '' }
+    ],
+    howToRead: 'Cost is what the chain charges Valura. Valura keeps is our fixed margin. The partner split is a share of the margin pool above cost; raising it increases what the client pays, and our fixed keep is unchanged. Client pays = cost + shareable.',
+    markupRule: 'A mark-up raises the client above the rates published in the Valura Schedule of Fees & Charges v4.2. Any mark-up must be agreed with Valura in writing and disclosed to the client before the account is opened.',
     exempt: 'GIFT City funds are exempt from the platform fee. No platform-fee share arises on them.'
   },
 
@@ -225,7 +255,7 @@ VLR.CONFIG = {
     ref: 'SCHED-C-2026.1',
     effective: '1 September 2026',
     rows: [
-      { milestone: 'First funded ticket within 30 days of the Effective Date', bonusUsd: 500,   window: 'One-time' },
+      { milestone: 'First funded ticket within 5 days of the Effective Date', bonusUsd: 500,   window: 'One-time' },
       { milestone: 'USD 1,000,000 net new Referred-Customer AUM',              bonusUsd: 1000,  window: 'Sustained 3 months' },
       { milestone: 'USD 5,000,000 net new Referred-Customer AUM',              bonusUsd: 6000,  window: 'Sustained 3 months' },
       { milestone: 'USD 10,000,000 net new Referred-Customer AUM',             bonusUsd: 15000, window: 'Sustained 3 months' },
@@ -394,8 +424,8 @@ VLR.CONFIG = {
     fxUsdInr: 83,
     statementDueBusinessDays: 15,     // Clause 5.3.2 — contractual
     disputeWindowDays: 15,            // Clause 5.3.5
-    kybTatHours: 48,                  // published TAT, doc-complete → code
-    goLiveDays: 30,
+    kybTatHours: 24,                  // published TAT, doc-complete → code
+    goLiveDays: 5,
     noticeDays: 30,
     cureDays: 15,
     liabilityCapMonths: 12,

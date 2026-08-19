@@ -547,8 +547,65 @@ VLR.App = (function () {
     const todayIso = VLR.fmt.iso(new Date());
 
     return `<div class="sheet wide">
-      ${head('Activation calendar', 'Thirty days, <em>every one of them dated</em>.',
-        `Generated from the signature date of ${VLR.fmt.date(p.effectiveDate)}. Change that date and everything below moves with it — including the contractual quarterly-statement deadline under Clause 5.3.2.`)}
+      ${head('Activation calendar', 'Five days, <em>because most of it runs at once</em>.',
+        `Generated from the signature date of ${VLR.fmt.date(p.effectiveDate)}. Three tracks run in parallel — what Valura builds, what the partner returns, and what they do together — so the programme is bounded by the longest dependency, not by the sum of the steps. Change the signature date and everything moves with it, including the contractual quarterly-statement deadline.`)}
+
+      ${(() => {
+        /* The five-day grid. Showing it as swimlanes is the point: read down
+           a column and you see what is happening simultaneously, which a
+           single ordered list hides.                                        */
+        const TRACK = [
+          { k: 'VALURA',  label: 'Valura builds',      c: 'var(--brand)' },
+          { k: 'PARTNER', label: 'Partner returns',    c: 'var(--navy)' },
+          { k: 'JOINT',   label: 'Together',           c: 'var(--ink)' }
+        ];
+        const days = [0, 1, 2, 3, 4, 5];
+        const within = cal.events.filter(e => e.d >= 0 && e.d <= 5);
+        return `
+        <div class="lbl" style="margin-bottom:10px">Signature to first funded ticket</div>
+        <div class="eyebrow-rule" style="margin-bottom:16px"></div>
+        <div style="overflow-x:auto;padding-bottom:6px">
+          <div style="display:grid;grid-template-columns:132px repeat(6, minmax(150px,1fr));gap:8px;min-width:1000px">
+            <div></div>
+            ${days.map(d => {
+              const dt = cal.events.find(e => e.d === d);
+              return `<div style="padding:0 0 8px">
+                <div class="lbl" style="color:var(--text)">Day ${d}</div>
+                <div class="faint mono" style="font-size:10px;margin-top:2px">${dt ? VLR.fmt.dateShort(dt.date) : ''}</div>
+              </div>`;
+            }).join('')}
+
+            ${TRACK.map(t => `
+              <div style="display:flex;align-items:flex-start;gap:7px;padding-top:9px">
+                <span style="width:3px;align-self:stretch;background:${t.c};border-radius:2px"></span>
+                <span class="lbl" style="color:var(--text-muted)">${t.label}</span>
+              </div>
+              ${days.map(d => {
+                const items = within.filter(e => e.d === d && (e.track || 'JOINT') === t.k);
+                if (!items.length) return `<div style="border-top:1px solid var(--rule);min-height:52px"></div>`;
+                return `<div style="border-top:1px solid var(--rule);padding-top:8px;display:flex;flex-direction:column;gap:6px">
+                  ${items.map(e => `
+                    <div style="border-left:2px solid ${t.c};background:${e.hard ? 'var(--ink)' : (e.ask ? 'var(--brand-tint)' : 'var(--card)')};
+                                color:${e.hard ? '#fff' : 'var(--text)'};
+                                border-radius:0 var(--r-sm) var(--r-sm) 0;padding:7px 9px;font-size:11.5px;line-height:1.35">
+                      <div style="font-weight:600">${VLR.fmt.esc(e.title.replace(/^ASK — /, ''))}</div>
+                      <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">
+                        ${e.ask ? '<span class="chip go" style="font-size:8px;padding:1px 6px">We ask</span>' : ''}
+                        ${e.hard ? '<span class="chip stop" style="font-size:8px;padding:1px 6px">Gate</span>' : ''}
+                        ${e.at ? `<span class="chip" style="font-size:8px;padding:1px 6px">${e.at}</span>` : ''}
+                      </div>
+                    </div>`).join('')}
+                </div>`;
+              }).join('')}
+            `).join('')}
+          </div>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin-top:14px;max-width:80ch">
+          Day 1 is the only real dependency: everything Valura builds is blocked on the brand kit and the KYB
+          pack coming back, and on nothing else. Compliance reviews documents as they land rather than waiting
+          for a complete set, so a missing item delays only itself.
+        </p>`;
+      })()}
 
       <div class="docbar">
         <span class="chip go dot">Green — programme milestone</span>
