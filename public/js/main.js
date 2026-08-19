@@ -314,7 +314,7 @@ VLR.App = (function () {
 
     return `<div class="sheet">
       ${head('Partner details', 'Paste it once. <em>Everything else generates.</em>',
-        'This is the only place partner data is entered. The agreement, term sheet, calendar, microsite, cards, collateral, emails and the client-facing referral disclosure are all derived from what is on this page.')}
+        'This is the only place partner data is entered. The agreement, term sheet, calendar, collateral, emails and the client-facing referral disclosure are all derived from what is on this page.')}
 
       <fieldset>
         <div class="fs-head"><div class="lbl">01 · Entity</div><div class="eyebrow-rule"></div>
@@ -344,7 +344,7 @@ VLR.App = (function () {
       <fieldset>
         <div class="fs-head"><div class="lbl">02 · Signature and contacts</div><div class="eyebrow-rule"></div>
           <h3>Who signs, and who we chase</h3>
-          <p>The signatory must match the board resolution. The notice email in §17.4 is taken from the signatory.</p></div>
+          <p>The signatory must match the board resolution. The notice email in §17.4 is taken from the signatory. The ops contact, or the business contact if there is none, is the name a client sees on the funding guide.</p></div>
         <div class="grid g4">
           <div>${f('Signatory name', 'signatoryName')}</div><div>${f('Signatory title', 'signatoryTitle')}</div>
           <div>${f('Signatory email', 'signatoryEmail', 'email')}</div><div>${f('Signatory mobile', 'signatoryMobile', 'tel')}</div>
@@ -354,7 +354,8 @@ VLR.App = (function () {
           <div>${f('Marketing contact', 'marketingContact')}</div><div>${f('Marketing email', 'marketingEmail', 'email')}</div>
         </div>
         <div class="grid g4">
-          <div>${f('Ops contact', 'opsContact')}</div><div>${f('Ops email', 'opsEmail', 'email')}</div>
+          <div>${f('Ops contact', 'opsContact', 'text', 'Named on the funding guide as the client’s point of contact.')}</div>
+          <div>${f('Ops email', 'opsEmail', 'email')}</div>
           <div>${f('Compliance contact', 'complianceContact')}</div><div>${f('Compliance email', 'complianceEmail', 'email')}</div>
         </div>
       </fieldset>
@@ -391,7 +392,7 @@ VLR.App = (function () {
       <fieldset>
         <div class="fs-head"><div class="lbl">04 · Brand kit</div><div class="eyebrow-rule"></div>
           <h3>Drop the logo in</h3>
-          <p>The partner mark occupies the partner slot of the lockup only. It never replaces Valura's page background, ink or accent — that is Schedule D.2.3, not a style preference.</p></div>
+          <p>The partner mark occupies the partner slot of the lockup. The partner's colour is used on accents only — step numbers, rules, the edge of a callout. Neither replaces Valura's page background, ink or typography. That is Schedule D.2.3, not a style preference.</p></div>
         <div class="grid g4">
           <div>
             <label class="lbl">Logo — for light backgrounds</label>
@@ -416,6 +417,7 @@ VLR.App = (function () {
             <label class="lbl">Secondary colour</label>
             <input type="color" class="swatch" data-k="secondaryHex" value="${VLR.fmt.esc(p.secondaryHex)}" style="margin-top:6px">
             <input type="text" class="mono" data-k="secondaryHex" value="${VLR.fmt.esc(p.secondaryHex)}" style="margin-top:6px">
+            <div class="hint">Drives the accents on the funding guide. Falls back to the primary, then to Valura green.</div>
           </div>
         </div>
         <div class="grid g3" style="margin-top:4px">
@@ -428,7 +430,7 @@ VLR.App = (function () {
           <div>${f('Logo URL — dark background', 'logoDarkUrl', 'url', 'Used on the ink band at the top of every co-branded email.')}</div>
         </div>
         ${(p.logoLight || p.logoDark) && !(p.logoLightUrl || p.logoDarkUrl)
-          ? `<div class="banner warn"><div><b>The uploaded logo will not appear in email.</b> It is embedded in the file, which is fine for the microsite, the cards and every PDF — but Gmail and Outlook strip embedded images. Host the mark somewhere public and paste the URL above, and the co-branded emails will carry it.</div></div>`
+          ? `<div class="banner warn"><div><b>The uploaded logo will not appear in email.</b> It is embedded in the file, which is fine for the funding guide and every PDF — but Gmail and Outlook strip embedded images. Host the mark somewhere public and paste the URL above, and the co-branded emails will carry it.</div></div>`
           : ''}
       </fieldset>
 
@@ -483,7 +485,7 @@ VLR.App = (function () {
         </div>
         <div class="grid g2" style="margin-top:10px">
           <label class="check"><input type="checkbox" data-kbool="trademarkLicenceSigned" ${p.trademarkLicenceSigned ? 'checked' : ''}>
-            <span><b>Schedule D trademark licence signed</b><br><span class="faint" style="font-size:11.5px">Required before the microsite or any co-branded collateral may publish.</span></span></label>
+            <span><b>Schedule D trademark licence signed</b><br><span class="faint" style="font-size:11.5px">Required before any co-branded collateral may publish.</span></span></label>
           <label class="check"><input type="checkbox" data-kbool="disclosureApproved" ${p.disclosureApproved ? 'checked' : ''}>
             <span><b>Referral disclosure approved by Compliance</b><br><span class="faint" style="font-size:11.5px">Hard gate. A code cannot go live without it.</span></span></label>
         </div>
@@ -535,7 +537,7 @@ VLR.App = (function () {
     const d = VLR.derive(p);
     if (!p.effectiveDate) {
       return `<div class="sheet">${head('Activation calendar', 'Set a signature date, <em>and the programme dates itself</em>.')}
-        <div class="banner warn"><div><b>No effective date.</b> Day 0 is the signature date. Set it in Partner details and the entire 90-day programme, the launch campaign and the contractual statement deadlines all compute from it.</div></div>
+        <div class="banner warn"><div><b>No effective date.</b> Day 0 is the signature date. Set it in Partner details and the entire programme, the launch campaign and the contractual statement deadlines all compute from it.</div></div>
         <button class="btn p" data-act="goto:setup">Set the signature date</button></div>`;
     }
     const cal = VLR.Cal.build(p);
@@ -911,18 +913,19 @@ VLR.App = (function () {
   }
 
   /* -- Commercial documents ------------------------------------------------ */
+  /* The segment brief lived in the old collateral.js and is gone with it.    */
   function vCommercial(p) {
     const list = [
       { k: 'term', label: 'Term sheet' }, { k: 'one', label: 'Economics one-pager' },
-      { k: 'seg', label: 'Segment brief' }, { k: 'fact', label: 'Internal fact sheet' }
+      { k: 'fact', label: 'Internal fact sheet' }
     ];
     const t = tabOf('commercial', list);
-    const body = { term: VLR.Doc.termSheet, one: VLR.Doc.onePager, seg: VLR.Doc.segmentPage, fact: VLR.Doc.factSheet }[t](p);
+    const fn = { term: VLR.Doc.termSheet, one: VLR.Doc.onePager, fact: VLR.Doc.factSheet }[t] || VLR.Doc.termSheet;
     return `<div class="sheet wide">
       ${head('Term sheet & briefs', 'Initial the numbers, <em>then the contract is a signature</em>.',
         'Schedule A is locked to the term sheet. If the economics are agreed here, the contract stage stops being a second negotiation.')}
       ${tabs('commercial', list)}
-      <div class="stage-wrap" id="print-area">${body}</div>
+      <div class="stage-wrap" id="print-area">${fn(p)}</div>
     </div>`;
   }
 
@@ -1138,22 +1141,14 @@ VLR.App = (function () {
 
   /* -- Collateral ---------------------------------------------------------- */
   function vCollateral(p) {
-    const list = [
-      { k: 'site', label: 'Microsite' }, { k: 'cards', label: 'Visiting cards' },
-      { k: 'sig', label: 'Email signature' }, { k: 'social', label: 'Social kit' },
-      { k: 'cert', label: 'Certificate' }, { k: 'guard', label: 'Guardrails card' },
-      { k: 'invite', label: 'Launch invite' }, { k: 'wrap', label: 'Client onboarding wrapper' },
-      { k: 'kit', label: 'Kit insert' }, { k: 'letter', label: 'Letterhead' }
-    ];
-    const t = tabOf('collateral', list);
-    const fn = { site: VLR.Doc.microsite, cards: VLR.Doc.visitingCards, sig: VLR.Doc.signatures,
-      social: VLR.Doc.socialKit, cert: VLR.Doc.certificate, guard: VLR.Doc.guardrails,
-      invite: VLR.Doc.invite, wrap: VLR.Doc.onboardingWrapper, kit: VLR.Doc.kitInsert, letter: VLR.Doc.letterhead }[t];
     return `<div class="sheet wide">
       ${head('Collateral pack', 'Generated per partner. <em>No manual design work.</em>',
-        'Everything here comes from the brand kit on the partner record. The partner mark occupies the partner slot of the lockup and nothing else — their colours never replace Valura\'s page background, ink or accent.')}
-      ${tabs('collateral', list)}
-      <div class="stage-wrap" id="print-area">${fn(p)}</div>
+        'The funding guide takes its mark and its colours from the brand kit on the partner record. Every instruction in it is Valura\'s text, identical for every client, whoever introduced them.')}
+      <div class="docbar">
+        <div class="spacer"></div>
+        <button class="btn sm" data-act="print">Print / PDF</button>
+      </div>
+      <div class="stage-wrap" id="print-area">${VLR.Doc.fundingGuide(p)}</div>
     </div>`;
   }
 
@@ -1205,28 +1200,18 @@ VLR.App = (function () {
       ['Partner Agreement v2.0 + Schedules A–D', 'agreement', 'Executed via Zoho Sign. Variable fields only.'],
       ['Term sheet', 'commercial', 'Initialled before the agreement is generated.'],
       ['Economics one-pager', 'commercial', 'Co-branded. Same numbers as the agreement §6.'],
-      ['Segment brief', 'commercial', `Written for a ${d.seg.label.toLowerCase()}.`],
       ['Intake form', 'compliance', 'One form. Everything downstream generates from it.'],
       ['KYB checklist and review record', 'compliance', `${VLR.CONFIG.ops.kybTatHours}h published turnaround.`],
       ['Referral disclosure', 'compliance', 'Clause 18(a). Hard gate on go-live.'],
       ['Activation calendar + ICS feed', 'calendar', 'Dated from signature. Includes the email-ID ask and handover.'],
-      ['Co-branded microsite', 'collateral', d.micrositeUrl],
-      ['Visiting cards', 'collateral', `${(p.people || []).filter(x => x.wantsCard).length} named people.`],
-      ['Email signature blocks', 'collateral', 'One per mailbox, disclosure line included.'],
-      ['Social kit', 'collateral', 'Banner, launch tile, story frame.'],
-      ['Certificate of accreditation', 'collateral', 'Issued on certification.'],
-      ['Marketing guardrails card', 'collateral', 'Two pages. Re-tested at recertification.'],
-      ['Launch invite', 'collateral', 'Roundtable at D+17.'],
-      ['Client onboarding wrapper', 'collateral', 'Cover and footer co-branded; body is regulated text.'],
-      ['Welcome kit insert', 'collateral', 'Codes and the next four dates.'],
-      ['Letterhead', 'collateral', 'With the required disclosure footer.'],
+      ['Client funding guide', 'collateral', 'Co-branded cover, generic instructions.'],
       ['Business plan', 'plan', 'AUM target down to weekly calls.'],
       ['Quarterly statement specimen', 'plan', 'Clause 5.3.2 — 15 business days.'],
       ['Email sequence, 12 messages', 'emails', 'Drafted. Sent by a named human.']
     ];
     return `<div class="sheet">
       ${head('The partner pack', 'Bring in a distributor. <em>Hand them this.</em>',
-        `Twenty-one artefacts, all generated from the record for ${VLR.fmt.esc(d.displayName)}. Nothing on this list is designed, drafted or calculated by hand.`)}
+        `${items.length} artefacts, all generated from the record for ${VLR.fmt.esc(d.displayName)}. Nothing on this list is designed, drafted or calculated by hand.`)}
 
       ${rd.ready ? `<div class="banner"><div><b>Cleared.</b> Every gate is green. The pack can go out and the code can go live.</div></div>`
         : `<div class="banner stop"><div><b>${rd.checks.filter(c => !c.ok).length} gate(s) still open.</b> The pack can be produced and reviewed, but the partner code must not go live: ${rd.checks.filter(c => !c.ok).map(c => c.label).join(' · ')}.</div></div>`}
@@ -1246,13 +1231,13 @@ VLR.App = (function () {
         <div class="card tint">
           <div class="lbl">Print everything</div>
           <h3 style="margin-top:6px">One PDF, in order</h3>
-          <p class="muted" style="font-size:12.5px;margin:8px 0 14px">Agreement, term sheet, one-pager, intake, KYB, disclosure, guardrails, plan, statement and the collateral sheets, as a single print job.</p>
+          <p class="muted" style="font-size:12.5px;margin:8px 0 14px">Agreement, term sheet, one-pager, intake, KYB, disclosure, plan, statement and the client funding guide, as a single print job.</p>
           <button class="btn p" data-act="print-all" style="width:100%;justify-content:center">Build the full pack</button>
         </div>
         <div class="card">
           <div class="lbl">Calendar</div>
           <h3 style="margin-top:6px">Live ICS feed</h3>
-          <p class="muted" style="font-size:12.5px;margin:8px 0 14px">The 90-day programme with alarms, owners and the contractual statement deadlines.</p>
+          <p class="muted" style="font-size:12.5px;margin:8px 0 14px">The activation programme with alarms, owners and the contractual statement deadlines.</p>
           <button class="btn" data-act="ics" style="width:100%;justify-content:center">Download .ics</button>
         </div>
         <div class="card">
@@ -1296,6 +1281,9 @@ VLR.App = (function () {
             <tr><td><b>Withholding and GST rates</b></td>
               <td>10% withholding and 18% GST in the statement specimen — indicative pending PAN and treaty documentation.</td>
               <td>Finance</td></tr>
+            <tr><td><b>Funding guide screenshots</b></td>
+              <td>Placeholders until captures are added under <span class="mono">assets/funding/</span>. Every capture must use synthetic data — no real account number, address or mobile.</td>
+              <td>Ops</td></tr>
           </tbody>
         </table>
       </div>
@@ -1357,7 +1345,7 @@ VLR.App = (function () {
 
   /* ============================================================ EVENTS === */
   function onClick(ev) {
-    const t = ev.target.closest('[data-view],[data-partner],[data-tab],[data-act],[data-drop],[data-copy-sig]');
+    const t = ev.target.closest('[data-view],[data-partner],[data-tab],[data-act],[data-drop]');
     if (!t) return;
     const p = VLR.Store.active();
 
@@ -1368,11 +1356,6 @@ VLR.App = (function () {
       docTab[v] = k; render(); return;
     }
     if (t.dataset.drop) { pickLogo(t.dataset.drop); return; }
-    if (t.dataset.copySig) {
-      const box = t.previousElementSibling;
-      VLR.Doc.copy(box.outerHTML).then(() => toast('Signature HTML copied'));
-      return;
-    }
 
     const a = t.dataset.act || '';
     if (a.startsWith('goto:')) { view = a.slice(5); render(); return; }
@@ -1665,32 +1648,27 @@ VLR.App = (function () {
   /* Build the whole pack into one printable surface. */
   function printAll(p) {
     const body = el('body-view');
+    const docs = [
+      VLR.Doc.termSheet(p),
+      VLR.Doc.agreement(p, { showVars: false }),
+      VLR.Doc.onePager(p),
+      VLR.Doc.intakeForm(p),
+      VLR.Doc.kybChecklist(p),
+      VLR.Doc.disclosureDoc(p),
+      VLR.Doc.businessPlan(p),
+      VLR.Doc.statement(p),
+      VLR.Doc.fundingGuide(p)
+    ];
     body.innerHTML = `<div class="sheet wide">
       <div class="docbar no-print">
         <button class="btn ghost" data-act="goto:pack">Back to the pack</button>
         <div class="spacer"></div>
         <button class="btn p" data-act="print">Print / save as PDF</button>
       </div>
-      <div class="stage-wrap plain">
-        ${VLR.Doc.termSheet(p)}
-        ${VLR.Doc.agreement(p, { showVars: false })}
-        ${VLR.Doc.onePager(p)}
-        ${VLR.Doc.segmentPage(p)}
-        ${VLR.Doc.intakeForm(p)}
-        ${VLR.Doc.kybChecklist(p)}
-        ${VLR.Doc.disclosureDoc(p)}
-        ${VLR.Doc.guardrails(p)}
-        ${VLR.Doc.businessPlan(p)}
-        ${VLR.Doc.statement(p)}
-        ${VLR.Doc.onboardingWrapper(p)}
-        ${VLR.Doc.invite(p)}
-        ${VLR.Doc.kitInsert(p)}
-        ${VLR.Doc.certificate(p)}
-        ${VLR.Doc.letterhead(p)}
-      </div>
+      <div class="stage-wrap plain">${docs.join('')}</div>
     </div>`;
     window.scrollTo(0, 0);
-    toast('Pack built — 15 documents');
+    toast(`Pack built — ${docs.length} documents`);
   }
 
   return { init, render };

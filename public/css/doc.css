@@ -224,3 +224,22 @@ table.dt tr.tot td { border-top: 1px solid var(--rule-strong); border-bottom: 0;
   h2.sec, h3.sub, .eyebrow-blk { page-break-after: avoid; }
   .band { page-break-inside: avoid; page-break-after: avoid; }
 }
+
+/* Funding guide */
+.fg-steps { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 6px; }
+.fg-chip {
+  display:flex; align-items:center; gap:7px;
+  font-family:var(--font-mono); font-size:8.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--text-muted);
+  border:1px solid var(--rule); border-radius:999px; padding:5px 12px 5px 5px;
+}
+.fg-chip .n {
+  width:16px; height:16px; border-radius:50%; color:#fff; font-size:8px;
+  display:flex; align-items:center; justify-content:center;
+}
+.fg-list { font-size:10.5px; line-height:1.75; padding-left:17px; margin:12px 0 0; }
+.fg-list li { margin-bottom:5px; }
+.fg-shot { margin:18px 0 0; text-align:center; }
+.fg-shot img { max-width:100%; max-height:520px; border:1px solid var(--rule); border-radius:var(--r-md); }
+.fg-shot figcaption { margin-top:8px; font-style:italic; }
+.fg-help { background:var(--paper-2); border-radius:var(--r-md); padding:14px 16px; margin-top:18px; }
